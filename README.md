@@ -1,5 +1,5 @@
-Pilot Logbook v2.2.9 — poprawka importu Verified Flights
+Pilot Logbook v2.2.12 — poprawka rozpoznawania lotu po TakeOffPilot.
 
-Wgraj index.html i sw.js do katalogu głównego repozytorium GitHub Pages, zastępując istniejące pliki. Przed aktualizacją wyeksportuj kopię JSON.
+Importer uznaje lot za użytkownika, gdy TakeOffPilot odpowiada ustawionemu Crew Code. LandingPilot może być innym pilotem, np. przy autolandzie. Pozostałe dane i loty są zachowane.
 
-Import nowych lotów ustawia szacunkowe checkboxy dzień/noc dla startu i lądowania na podstawie off-block/on-block i współrzędnych lotnisk. To przybliżenie, nie rzeczywisty czas startu/lądowania. PICUS nadal jest zapisywany w osobnym polu PICUS HH:MM; nie zaznaczamy Co-pilot, bo oznaczałoby to naliczenie czasu SIC.
+Wgraj index.html i sw.js do katalogu głównego repozytorium GitHub Pages, zatwierdź zmiany i sprawdź nagłówek v2.2.12. Zrób kopię JSON przed aktualizacją.
