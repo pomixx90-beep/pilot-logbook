@@ -1,20 +1,14 @@
-# Pilot Logbook — aktualizacja statystyk
+# Pilot Logbook — Reports update
 
-## Co się zmieniło
-- Dodano wybór roku w sekcji „Statystyki roczne”.
-- Statystyki miesięczne, typy samolotów, rejestracje, destynacje i czasy funkcji są liczone bezpośrednio z wpisów lotów dla wybranego roku.
-- Usunięto statyczne wartości kopiowane z arkusza Excel „Statistic”.
-- Zmieniono cache Service Workera na `pilot-logbook-v7`.
-- Pozostawiono dotychczasowy klucz i wersję importu, aby aktualizacja kodu nie nadpisała lokalnych wpisów użytkownika.
+This package adds a Reports section inspired by the reference app:
+- Time summary and time by role/condition
+- Airfields (departures, arrivals, operations)
+- Routes with links to Google Maps
+- Aircraft registrations and aircraft types
+- People / captains with sectors, block time, and share of total time
+- Approaches placeholder, because the current source data does not contain approach type/count fields
 
-## Aktualizacja na GitHub Pages z iPhone’a
-1. Otwórz repozytorium `pomixx90-beep/pilot-logbook` na GitHubie.
-2. Zastąp w katalogu głównym plik `index.html` nowym plikiem z tego ZIP-a.
-3. Zastąp w katalogu głównym plik `sw.js` nowym plikiem z tego ZIP-a.
-4. Zapisz zmiany/commit.
-5. Po publikacji otwórz stronę ponownie. Jeśli widzisz starą wersję, zamknij kartę i otwórz stronę ponownie; nowy cache Service Workera ma nazwę `pilot-logbook-v7`.
+It also increments the workbook import version to refresh workbook-derived captain and time fields, and increments the service-worker cache version.
 
-Nie podmieniaj `workbook-data.json`, jeśli nie chcesz zmieniać przygotowanej bazy importu. Przed aktualizacją zachowaj kopię JSON z aplikacji.
-
-
-Wersja mapfix: przebudowuje mapowanie kolumn na podstawie nagłówków NAME PIC/PIC/IFR itp. i ponownie odświeża dane arkusza (import v6). Zapis lokalny porównuje czas zapisu localStorage i IndexedDB, aby odtworzyć nowszą kopię. Przed wdrożeniem wyeksportuj JSON; po wdrożeniu przywróć kopię, jeśli lotów brakuje.
+## Deploy
+Replace `index.html` and `sw.js` in the root of the GitHub Pages repository. Keep `workbook-data.json`, `manifest.json`, and the icons in place. Export a JSON backup before deploying. The app remains local-only; this package does not add cloud sync.
