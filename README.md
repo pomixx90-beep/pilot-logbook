@@ -1,9 +1,11 @@
-# Pilot Logbook PWA — import lotów z Excela
+# Pilot Logbook PWA — updated flight-entry form
 
-Aplikacja automatycznie importuje loty z arkuszy rocznych i Winter z dołączonego `workbook-data.json` do zwykłej Historii i Statystyk przy pierwszym uruchomieniu. Zachowuje SBH jako oddzielne pole danych, nie używa go jako TOTAL TIME. Dane pozostają lokalnie na urządzeniu.
+This package updates the flight-entry form while preserving the existing imported workbook data.
 
-Wgraj wszystkie pliki z tego folderu do root repozytorium GitHub Pages. Po aktualizacji otwórz stronę w Safari i odśwież ją.
+- Block time is calculated from off-block and on-block times entered in UTC (including overnight flights).
+- Boeing aircraft types automatically set IFR time equal to block time as requested; check this against the actual flight conditions before relying on the entry.
+- Pilot functions are selectable with checkboxes: PIC, Co-pilot, Dual, Instructor. Selected function time is set to block time and can be adjusted if only part of the flight applies.
+- Night time remains editable and is not guessed automatically. EASA defines night as the period between the end of evening civil twilight and the beginning of morning civil twilight, or another period prescribed by the competent authority; there is no universal EASA rule that simply adds/subtracts 30 minutes from block time.
+- Existing flight data and workbook-data.json are retained. No import version bump is performed, to avoid overwriting local entries.
 
-
-## Import lotów — wersja poprawiona
-Przy pierwszym uruchomieniu tej wersji aplikacja zastępuje poprzednią, niepełną bazę lotów wpisami odczytanymi z arkuszy rocznych 2018–2026. Import nie jest ponawiany przy kolejnych uruchomieniach, aby zachować późniejsze edycje. `TOTAL TIME` jest źródłem pola czasu lotu; `SBH` pozostaje osobnym polem. W pliku źródłowym suma datowanych wierszy z czasem dodatnim wynosi 2177:18, natomiast podsumowanie widoczne w arkuszu pokazuje 2183:31 — ta różnica 6:13 wymaga osobnej weryfikacji w samym Excelu i nie jest sztucznie dopisywana.
+Upload the files to the root of the GitHub Pages repository, replacing index.html and sw.js (other files can remain unchanged).
