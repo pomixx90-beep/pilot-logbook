@@ -61,6 +61,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <div class="panel"><h3>Rejestracje — liczba sektorów</h3><div class="tablewrap"><table class="statTable"><thead><tr><th>Registration</th><th>Sektory</th><th>%</th><th>Total Time</th></tr></thead><tbody id="statRegs"></tbody></table></div></div>
 <div class="panel"><h3>Najczęstsze destynacje</h3><div class="tablewrap"><table class="statTable"><thead><tr><th>Destination ICAO</th><th>Sektory</th><th>%</th><th>Total Time</th></tr></thead><tbody id="statDest"></tbody></table></div></div>
 <div class="panel"><h3>Czas według funkcji</h3><div class="tablewrap"><table class="statTable"><thead><tr><th>Funkcja / warunek</th><th>Total Time</th></tr></thead><tbody id="statPIC"></tbody></table></div></div>
+<div class="panel"><h3>Dowódcy, z którymi latałem</h3><div class="tablewrap"><table class="statTable"><thead><tr><th>Dowódca</th><th>Sektory</th><th>Total Time</th></tr></thead><tbody id="statCaptains"></tbody></table></div></div>
 <h2>Ostatnie loty</h2><div class="panel" id="recent"></div>
 </section>
 <section id="history" class="view">
@@ -74,6 +75,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <input type="hidden" id="editId">
 <div class="row"><label>Data *<input id="date" type="date" required></label><label>Numer lotu<input id="flightNumber" placeholder="np. FR1234"></label></div>
 <div class="row"><label>Typ samolotu<input id="aircraftType" value="B737"></label><label>Rejestracja<input id="registration" placeholder="np. SP-ABC"></label></div>
+<div class="row"><label>Dowódca / NAME PIC<input id="captain" placeholder="Nazwisko dowódcy lub SELF"></label><label>PICUS HH:MM<input id="picus" placeholder="00:00" value="00:00"></label></div><p class="sub">PICUS: automatycznie równy block time, gdy dowódca jest inny niż SELF. Sprawdź wpis przed zapisaniem.</p>
 <div class="row"><label>Odlot ICAO *<input id="departure" placeholder="EPPO" maxlength="4" required></label><label>Przylot ICAO *<input id="arrival" placeholder="LEBL" maxlength="4" required></label></div>
 <div class="row"><label>Wylot / off-block (UTC)<input id="depTime" type="time" step="60"></label><label>Przylot / on-block (UTC)<input id="arrTime" type="time" step="60"></label></div>
 <div class="row"><label>Block time (wyliczany) HH:MM *<input id="block" placeholder="02:35" required readonly></label><label>Lądowania<input id="landingsInput" type="number" min="0" value="1"></label></div>
@@ -121,7 +123,7 @@ function sum(list){return list.reduce((a,f)=>a+(+f.block||0),0)}
 function startDays(n){let d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(n-1));return d}
 function within(f,d){return dateObj(f.date)>=d && dateObj(f.date)<=new Date()}
 function sorted(){return [...flights].sort((a,b)=>b.date.localeCompare(a.date))}
-function flightHTML(f){return `<div class="flight"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'bez numeru')} · ${esc(f.aircraftType||'')} ${esc(f.registration||'')}</div><div class="meta">PIC ${fmt(f.pic)} · SIC ${fmt(f.sic)} · IFR ${fmt(f.ifr)} · Noc ${fmt(f.night)}</div><div class="row" style="margin-top:8px"><button class="secondary" onclick="editFlight('${f.id}')">Edytuj</button><button class="secondary danger" onclick="deleteFlight('${f.id}')">Usuń</button></div></div><div class="time">${fmt(f.block)}</div></div>`}
+function flightHTML(f){return `<div class="flight"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'bez numeru')} · ${esc(f.aircraftType||'')} ${esc(f.registration||'')}</div><div class="meta">Dowódca: ${esc(f.captain||'Nie podano')} · PICUS ${fmt(f.picus||0)}</div><div class="meta">PIC ${fmt(f.pic)} · SIC ${fmt(f.sic)} · IFR ${fmt(f.ifr)} · Noc ${fmt(f.night)}</div><div class="row" style="margin-top:8px"><button class="secondary" onclick="editFlight('${f.id}')">Edytuj</button><button class="secondary danger" onclick="deleteFlight('${f.id}')">Usuń</button></div></div><div class="time">${fmt(f.block)}</div></div>`}
 function limitHTML(title,value,limit){let pct=Math.min(100,value/limit*100),over=value>=limit;return `<div class="${over?'warning':''}" style="border-radius:12px;padding:2px"><strong>${title}: ${fmt(value)} / ${fmt(limit)}</strong><div style="height:7px;background:#26394d;border-radius:9px;margin:10px 0 6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${over?'#ff8888':'#7dc6ff'}"></div></div><span class="sub">${over?'Osiągnięto lub przekroczono próg.':'Wykorzystano '+pct.toFixed(0)+'% progu.'}</span></div>`}
 const MONTHS=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
 function putStats(id,rows,cols=4){const el=$(id);if(el)el.innerHTML=rows.length?rows.map(r=>'<tr>'+r.map(v=>'<td>'+esc(v??'—')+'</td>').join('')+'</tr>').join(''):`<tr><td colspan="${cols}">Brak danych dla wybranego roku</td></tr>`}
@@ -139,8 +141,9 @@ function renderYearStats(){
  putStats('statAircraft',groupStats(list,f=>f.aircraftType).map(x=>[x.key,x.count,pct(x.count),fmt(x.block)]),4);
  putStats('statRegs',groupStats(list,f=>f.registration).map(x=>[x.key,x.count,pct(x.count),fmt(x.block)]),4);
  putStats('statDest',groupStats(list,f=>f.arrival).map(x=>[x.key,x.count,pct(x.count),fmt(x.block)]),4);
- const funcs=[['PIC',f=>f.pic],['Co-pilot',f=>f.sic],['Dual',f=>f.dual],['Instructor',f=>f.instructor],['IFR',f=>f.ifr],['Noc',f=>f.night],['SBH',f=>f.sbh]];
+ const funcs=[['PIC',f=>f.pic],['PICUS',f=>f.picus!=null?f.picus:((f.captain&&!/^SELF$/i.test(f.captain))?f.block:0)],['Co-pilot',f=>f.sic],['Dual',f=>f.dual],['Instructor',f=>f.instructor],['IFR',f=>f.ifr],['Noc',f=>f.night],['SBH',f=>f.sbh]];
  putStats('statPIC',funcs.map(([name,fn])=>[name,fmt(list.reduce((n,f)=>n+(+fn(f)||0),0))]),2);
+ putStats('statCaptains',groupStats(list,f=>f.captain && !/^SELF$/i.test(f.captain)?f.captain:'').map(x=>[x.key,x.count,fmt(x.block)]),3);
 }
 $('statsYear').addEventListener('change',renderYearStats);
 function render(){
@@ -152,8 +155,8 @@ let recent=sorted().slice(0,4);$('recent').innerHTML=recent.length?recent.map(f=
 renderHistory()
 }
 function renderHistory(){let q=($('search')?.value||'').toLowerCase();let arr=sorted().filter(f=>[f.departure,f.arrival,f.flightNumber,f.registration,f.aircraftType].join(' ').toLowerCase().includes(q));$('flightList').innerHTML=arr.length?arr.map(flightHTML).join(''):'<div class="empty">Nie znaleziono lotów.</div>'}
-function clearForm(){ $('flightForm').reset();$('editId').value='';$('date').value=new Date().toISOString().slice(0,10);$('aircraftType').value='B737';$('pic').value='00:00';$('sic').value='00:00';$('dual').value='00:00';$('instructor').value='00:00';$('ifr').value='00:00';$('night').value='00:00';$('block').value='';$('landingsInput').value='1';$('formTitle').textContent='Dodaj lot';$('cancelEdit').classList.add('hidden');syncAutoFields()}
-function editFlight(id){let f=flights.find(x=>x.id===id);if(!f)return;switchTab('add');$('editId').value=id;for(let [k,v] of Object.entries({date:f.date,flightNumber:f.flightNumber,aircraftType:f.aircraftType,registration:f.registration,departure:f.departure,arrival:f.arrival,depTime:f.depTime||'',arrTime:f.arrTime||'',block:fmt(f.block),pic:fmt(f.pic),sic:fmt(f.sic),dual:fmt(f.dual||0),instructor:fmt(f.instructor||0),ifr:fmt(f.ifr),night:fmt(f.night),landingsInput:f.landings,notes:f.notes}))$(k).value=v;$('rolePIC').checked=!!f.rolePIC;$('roleCOPILOT').checked=!!f.roleCOPILOT;$('roleDUAL').checked=!!f.roleDUAL;$('roleINSTRUCTOR').checked=!!f.roleINSTRUCTOR;$('formTitle').textContent='Edytuj lot';$('cancelEdit').classList.remove('hidden');window.scrollTo(0,0)}
+function clearForm(){ $('flightForm').reset();$('editId').value='';$('date').value=new Date().toISOString().slice(0,10);$('aircraftType').value='B737';$('captain').value='';$('picus').value='00:00';$('pic').value='00:00';$('sic').value='00:00';$('dual').value='00:00';$('instructor').value='00:00';$('ifr').value='00:00';$('night').value='00:00';$('block').value='';$('landingsInput').value='1';$('formTitle').textContent='Dodaj lot';$('cancelEdit').classList.add('hidden');syncAutoFields()}
+function editFlight(id){let f=flights.find(x=>x.id===id);if(!f)return;switchTab('add');$('editId').value=id;for(let [k,v] of Object.entries({date:f.date,flightNumber:f.flightNumber,aircraftType:f.aircraftType,registration:f.registration,captain:f.captain||'',picus:fmt(f.picus||0),departure:f.departure,arrival:f.arrival,depTime:f.depTime||'',arrTime:f.arrTime||'',block:fmt(f.block),pic:fmt(f.pic),sic:fmt(f.sic),dual:fmt(f.dual||0),instructor:fmt(f.instructor||0),ifr:fmt(f.ifr),night:fmt(f.night),landingsInput:f.landings,notes:f.notes}))$(k).value=v;$('rolePIC').checked=!!f.rolePIC;$('roleCOPILOT').checked=!!f.roleCOPILOT;$('roleDUAL').checked=!!f.roleDUAL;$('roleINSTRUCTOR').checked=!!f.roleINSTRUCTOR;$('formTitle').textContent='Edytuj lot';$('cancelEdit').classList.remove('hidden');window.scrollTo(0,0)}
 function deleteFlight(id){if(!confirm('Usunąć ten wpis?'))return;flights=flights.filter(f=>f.id!==id);save()}
 function switchTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='add'&&!$('editId').value)clearForm();window.scrollTo(0,0)}
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
@@ -161,12 +164,12 @@ $('search').addEventListener('input',renderHistory);
 function syncAutoFields(){const type=$('aircraftType').value.trim().toUpperCase();const isBoeing=/^(BOEING\s*)?B(7\d{2}|737|747|757|767|777|787)/.test(type);if(isBoeing){const b=minutes($('block').value||'00:00');$('ifr').value=fmt(b)}else if(!$('editId').value){$('ifr').value='00:00'}for(const [id,checked] of [['pic',$('rolePIC').checked],['sic',$('roleCOPILOT').checked],['dual',$('roleDUAL').checked],['instructor',$('roleINSTRUCTOR').checked]]){if(checked)$ (id==='pic'?'pic':id==='sic'?'sic':id).value=fmt(minutes($('block').value||'00:00'));else if(!$('editId').value)$(id).value='00:00'}}
 function updateBlockFromTimes(){const d=$('depTime').value,a=$('arrTime').value;if(d&&a){let dm=Number(d.slice(0,2))*60+Number(d.slice(3,5)),am=Number(a.slice(0,2))*60+Number(a.slice(3,5));let diff=am-dm;if(diff<0)diff+=1440;$('block').value=fmt(diff);syncAutoFields()}else{$('block').value='';syncAutoFields()}}
 $('depTime').addEventListener('input',updateBlockFromTimes);$('arrTime').addEventListener('input',updateBlockFromTimes);$('aircraftType').addEventListener('input',syncAutoFields);['rolePIC','roleCOPILOT','roleDUAL','roleINSTRUCTOR'].forEach(id=>$(id).addEventListener('change',()=>{syncAutoFields();}));
-$('flightForm').addEventListener('submit',e=>{e.preventDefault();try{let f={id:$('editId').value||uid(),date:$('date').value,flightNumber:$('flightNumber').value.trim(),aircraftType:$('aircraftType').value.trim(),registration:$('registration').value.trim().toUpperCase(),departure:$('departure').value.trim().toUpperCase(),arrival:$('arrival').value.trim().toUpperCase(),depTime:$('depTime').value,arrTime:$('arrTime').value,block:minutes($('block').value),pic:minutes($('pic').value),sic:minutes($('sic').value),dual:minutes($('dual').value),instructor:minutes($('instructor').value),ifr:minutes($('ifr').value),night:minutes($('night').value),rolePIC:$('rolePIC').checked,roleCOPILOT:$('roleCOPILOT').checked,roleDUAL:$('roleDUAL').checked,roleINSTRUCTOR:$('roleINSTRUCTOR').checked,landings:Math.max(0,Number($('landingsInput').value)||0),notes:$('notes').value.trim()};if(!f.date||!f.departure||!f.arrival)throw Error('Uzupełnij datę i lotniska.');if(!f.block)throw Error('Czas block time musi być większy od zera.');let i=flights.findIndex(x=>x.id===f.id);if(i>=0)flights[i]=f;else flights.push(f);save();clearForm();switchTab('history')}catch(err){alert(err.message||'Nie udało się zapisać wpisu.')}});
+$('flightForm').addEventListener('submit',e=>{e.preventDefault();try{let f={id:$('editId').value||uid(),date:$('date').value,flightNumber:$('flightNumber').value.trim(),aircraftType:$('aircraftType').value.trim(),registration:$('registration').value.trim().toUpperCase(),captain:$('captain').value.trim(),picus:minutes($('picus').value),departure:$('departure').value.trim().toUpperCase(),arrival:$('arrival').value.trim().toUpperCase(),depTime:$('depTime').value,arrTime:$('arrTime').value,block:minutes($('block').value),pic:minutes($('pic').value),sic:minutes($('sic').value),dual:minutes($('dual').value),instructor:minutes($('instructor').value),ifr:minutes($('ifr').value),night:minutes($('night').value),rolePIC:$('rolePIC').checked,roleCOPILOT:$('roleCOPILOT').checked,roleDUAL:$('roleDUAL').checked,roleINSTRUCTOR:$('roleINSTRUCTOR').checked,landings:Math.max(0,Number($('landingsInput').value)||0),notes:$('notes').value.trim()};if(!f.date||!f.departure||!f.arrival)throw Error('Uzupełnij datę i lotniska.');if(!f.block)throw Error('Czas block time musi być większy od zera.');let i=flights.findIndex(x=>x.id===f.id);if(i>=0)flights[i]=f;else flights.push(f);save();clearForm();switchTab('history')}catch(err){alert(err.message||'Nie udało się zapisać wpisu.')}});
 $('cancelEdit').addEventListener('click',()=>{clearForm();switchTab('history')});
 function csvCell(v){let s=String(v??'');return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
 function download(name,content,type){let blob=new Blob([content],{type});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-const headers=['Date','Flight Number','Aircraft Type','Registration','Departure','Arrival','Departure Time UTC','Arrival Time UTC','Block Time','PIC','Co-pilot','Dual','Instructor','IFR','Night','Landings','Notes'];
-function csvExport(){let rows=[headers,...sorted().map(f=>[f.date,f.flightNumber,f.aircraftType,f.registration,f.departure,f.arrival,f.depTime||'',f.arrTime||'',fmt(f.block),fmt(f.pic),fmt(f.sic),fmt(f.dual||0),fmt(f.instructor||0),fmt(f.ifr),fmt(f.night),f.landings,f.notes])];download('pilot-logbook.csv','\\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8')}
+const headers=['Date','Flight Number','Aircraft Type','Registration','Departure','Arrival','Departure Time UTC','Arrival Time UTC','Block Time','Captain / NAME PIC','PICUS','PIC','Co-pilot','Dual','Instructor','IFR','Night','Landings','Notes'];
+function csvExport(){let rows=[headers,...sorted().map(f=>[f.date,f.flightNumber,f.aircraftType,f.registration,f.departure,f.arrival,f.depTime||'',f.arrTime||'',fmt(f.block),f.captain||'',fmt(f.picus||0),fmt(f.pic),fmt(f.sic),fmt(f.dual||0),fmt(f.instructor||0),fmt(f.ifr),fmt(f.night),f.landings,f.notes])];download('pilot-logbook.csv','\\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8')}
 $('exportCSV').onclick=csvExport;$('historyExport').onclick=csvExport;
 $('exportJSON').onclick=()=>download('pilot-logbook-backup.json',JSON.stringify({version:1,exportedAt:new Date().toISOString(),flights},null,2),'application/json');
 $('chooseCSV').onclick=()=>$('csvFile').click();
@@ -181,6 +184,18 @@ const IMPORT_KEY='pilot-logbook-excel-flights-import-v2';
 let workbookData=null;
 function excelDate(v){if(!v)return '';let s=String(v);let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[1]}-${m[2]}-${m[3]}`:''}
 function excelMinutes(v){if(v==null||v==='')return 0;let s=String(v).trim();let m=s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);if(m)return (+m[1])*60+(+m[2])+(+(m[3]||0)>=30?1:0);let n=Number(v);return Number.isFinite(n)&&n>0?Math.round(n*1440):0}
+function enrichCaptainData(data){
+ const sheets=new Map((data.sheets||[]).map(sh=>[sh.name,sh.rows||[]]));
+ for(const f of (data.flights||flights)){
+  if(f.captain && f.picus!=null) continue;
+  const rows=sheets.get(f.sourceSheet); if(!rows) continue;
+  const idx=Number(f.sourceRow); const r=rows[idx] || rows[idx-1]; if(!r) continue;
+  const captain=String(r[16]||'').trim();
+  if(!f.captain && captain) f.captain=captain;
+  const isSelf=!captain || /^SELF$/i.test(captain);
+  if(f.picus==null || f.picus===0) f.picus=(!isSelf ? (Number(f.block)||0) : 0);
+ }
+}
 function importFlightsFromWorkbook(data){
  let imported=[]; const seen=new Set(flights.map(f=>[f.date,f.departure,f.arrival,f.registration,Number(f.block)||0].join('|')));
  for(const sh of data.sheets||[]){ if(!/^\d{4}$/.test(sh.name)&&!/^Winter/i.test(sh.name))continue;
@@ -190,21 +205,26 @@ function importFlightsFromWorkbook(data){
    if(!block){let a=excelMinutes(arrTime),b=excelMinutes(depTime);block=a-b;if(block<0)block+=1440;}
    if(!block)continue;
    const registration=String(r[6]||'').trim();const key=[date,dep,arr,registration,block].join('|');if(seen.has(key))continue;seen.add(key);
-   imported.push({id:uid(),date,flightNumber:'',aircraftType:String(r[5]||''),registration,departure:dep,arrival:arr,block,pic:excelMinutes(r[25]),sic:excelMinutes(r[27]),ifr:excelMinutes(r[23]),night:excelMinutes(r[21]),landings:(Number(r[19])||0)+(Number(r[20])||0),notes:[String(r[38]||'').trim(),String(r[41]||'').trim()].filter(Boolean).join(' · '),sbh:excelMinutes(r[15]),sourceSheet:sh.name,sourceRow:ri+1});
+   const captain=String(r[16]||'').trim(); const picus=captain && !/^SELF$/i.test(captain) ? block : 0; imported.push({id:uid(),date,flightNumber:'',aircraftType:String(r[5]||''),registration,departure:dep,arrival:arr,captain,picus,block,pic:excelMinutes(r[25]),sic:excelMinutes(r[27]),ifr:excelMinutes(r[23]),night:excelMinutes(r[21]),landings:(Number(r[19])||0)+(Number(r[20])||0),notes:[String(r[38]||'').trim(),String(r[41]||'').trim()].filter(Boolean).join(' · '),sbh:excelMinutes(r[15]),sourceSheet:sh.name,sourceRow:ri+1});
   }
  }
  return imported;
 }
 async function initWorkbook(){
  try{
-  const importVersion='3';
+  const importVersion='4';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=3',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=4',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
-  // Replace the previous incomplete import, rather than appending and double-counting it.
-  flights=workbookData.flights.map(f=>({...f,id:f.id||uid()}));
+  // Refresh workbook-derived records with captain/PICUS while retaining manually added flights.
+  const oldById=new Map(flights.map(f=>[f.id,f]));
+  enrichCaptainData(workbookData);
+  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};return {...f,...old,id:f.id||old.id||uid(),captain:old.captain||f.captain||'',picus:old.picus!=null?old.picus:(f.picus||0)}});
+  const sourceIds=new Set(refreshed.map(f=>f.id));
+  const manual=flights.filter(f=>!f.sourceSheet&&!sourceIds.has(f.id));
+  flights=[...refreshed,...manual];
   localStorage.setItem(KEY,JSON.stringify(flights));
   localStorage.setItem(IMPORT_KEY,importVersion);
   localStorage.setItem(WORKBOOK_KEY,JSON.stringify(workbookData));
