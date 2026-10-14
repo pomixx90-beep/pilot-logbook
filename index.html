@@ -38,7 +38,7 @@ footer{color:var(--muted);font-size:11px;padding:20px 4px;line-height:1.5}
 <body>
 <header><h1>✈ Pilot Logbook</h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p></header>
 <nav>
-<button class="active" data-tab="dashboard">Statystyki</button><button data-tab="history">Historia</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="workbook">Arkusze Excel</button><button data-tab="data">Import / eksport</button>
+<button class="active" data-tab="dashboard">Statystyki</button><button data-tab="history">Historia</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
@@ -75,20 +75,7 @@ footer{color:var(--muted);font-size:11px;padding:20px 4px;line-height:1.5}
 <p class="sub">Czasy wpisuj jako HH:MM. Wartości nie są automatycznie wyliczane z godzin off/on.</p>
 </form>
 </section>
-<section id="workbook" class="view">
-<h2>Dane z pliku Logbook.xlsx</h2>
-<div class="panel">
-<p class="sub" id="workbookStatus">Wczytywanie danych z dołączonego pliku…</p>
-<label>Zakładka Excel<select id="sheetSelect"></select></label>
-<label>Szukaj w aktywnej zakładce<input id="sheetSearch" placeholder="Szukaj tekstu, lotniska, daty…"></label>
-<div class="row" style="margin-top:12px"><button class="secondary" id="downloadWorkbook">Eksport danych arkuszy (JSON)</button></div>
-<p class="sub">Dane z pliku są dołączone do aplikacji i kopiowane do pamięci lokalnej przy pierwszym uruchomieniu. Wszystkie zakładki — również ukryte — oraz kolumny są zachowane. Formuły Excel są zachowane jako tekst formuły; aplikacja nie przelicza formuł Excela.</p>
-</div>
-<div class="panel" style="margin-top:10px;padding:8px">
-<div id="sheetInfo" class="sub" style="padding:6px"></div>
-<div id="sheetTableWrap" style="overflow:auto;max-height:65vh;overscroll-behavior:contain"></div>
-</div>
-</section>
+
 <section id="data" class="view">
 <h2>Dane i kopie zapasowe</h2>
 <div class="panel">
@@ -152,45 +139,35 @@ function parseCSV(t){let rows=[],row=[],field='',q=false;for(let i=0;i<t.length;
 $('importJSONBtn').onclick=()=>$('jsonFile').click();
 $('jsonFile').onchange=async e=>{try{let f=e.target.files[0];if(!f)return;let obj=JSON.parse(await f.text());let list=Array.isArray(obj)?obj:obj.flights;if(!Array.isArray(list))throw Error('Nie znaleziono listy lotów.');if(!confirm(`Zastąpić obecną bazę ${list.length} wpisami z kopii?`))return;flights=list.map(f=>({...f,id:f.id||uid()}));save();$('dataStatus').textContent='Przywrócono kopię JSON.'}catch(err){alert('Błąd kopii: '+err.message)}finally{e.target.value=''}};
 const WORKBOOK_KEY='pilot-logbook-workbook-v1';
+const IMPORT_KEY='pilot-logbook-excel-flights-import-v2';
 let workbookData=null;
-async function initWorkbook(){
-  try{
-    const saved=localStorage.getItem(WORKBOOK_KEY);
-    if(saved){workbookData=JSON.parse(saved)}
-    else {
-      const res=await fetch('./workbook-data.json',{cache:'no-store'});
-      if(!res.ok)throw Error('Nie można odczytać danych dołączonych do aplikacji.');
-      workbookData=await res.json();
-      localStorage.setItem(WORKBOOK_KEY,JSON.stringify(workbookData));
-    }
-    const sel=$('sheetSelect');
-    sel.innerHTML=workbookData.sheets.map((sh,i)=>`<option value="${i}">${esc(sh.name)}${sh.state==='hidden'?' (ukryta)':''}</option>`).join('');
-    $('workbookStatus').textContent=`Wczytano ${workbookData.sheets.length} zakładek z pliku ${workbookData.sourceFile}. Dane zapisane lokalnie na tym urządzeniu.`;
-    sel.addEventListener('change',renderSheet);
-    $('sheetSearch').addEventListener('input',renderSheet);
-    $('downloadWorkbook').onclick=()=>download('pilot-logbook-arkusze.json',JSON.stringify(workbookData), 'application/json');
-    renderSheet();
-  }catch(err){$('workbookStatus').textContent='Nie udało się automatycznie wczytać arkuszy: '+err.message+'. Otwórz aplikację z aktywnym internetem i odśwież.'}
-}
-function renderSheet(){
-  if(!workbookData)return;
-  const sh=workbookData.sheets[Number($('sheetSelect').value)||0];
-  if(!sh)return;
-  const q=($('sheetSearch').value||'').trim().toLowerCase();
-  const rows=sh.rows.map((r,i)=>({r,i})).filter(({r})=>!q||r.some(v=>String(v??'').toLowerCase().includes(q)));
-  $('sheetInfo').textContent=`${sh.name} · ${sh.maxRow} wierszy · ${sh.maxCol} kolumn · ${sh.state==='hidden'?'zakładka ukryta w Excelu':'zakładka widoczna'}${q?' · wyników: '+rows.length:''}`;
-  let out='<table id="sheetTable"><thead><tr><th>Wiersz</th>';
-  for(let c=0;c<sh.maxCol;c++)out+=`<th>${excelCol(c+1)}</th>`;
-  out+='</tr></thead><tbody>';
-  for(const {r,i} of rows){
-    out+=`<tr><th class="rownum">${i+1}</th>`;
-    for(let c=0;c<sh.maxCol;c++){let v=r[c];out+=`<td title="${esc(v==null?'':String(v))}">${esc(v==null?'':String(v))}</td>`}
-    out+='</tr>';
+function excelDate(v){if(!v)return '';let s=String(v);let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[1]}-${m[2]}-${m[3]}`:''}
+function excelMinutes(v){if(v==null||v==='')return 0;let s=String(v).trim();let m=s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);if(m)return (+m[1])*60+(+m[2])+(+(m[3]||0)>=30?1:0);let n=Number(v);return Number.isFinite(n)&&n>0?Math.round(n*1440):0}
+function importFlightsFromWorkbook(data){
+ let imported=[]; const seen=new Set(flights.map(f=>[f.date,f.departure,f.arrival,f.registration,Number(f.block)||0].join('|')));
+ for(const sh of data.sheets||[]){ if(!/^\d{4}$/.test(sh.name)&&!/^Winter/i.test(sh.name))continue;
+  for(let ri=0;ri<(sh.rows||[]).length;ri++){const r=sh.rows[ri]||[];const date=excelDate(r[0]),dep=String(r[1]||'').trim().toUpperCase(),arr=String(r[3]||'').trim().toUpperCase();
+   if(!date||!dep||!arr||dep==='PLACE'||arr==='PLACE'||!/^([A-Z]{4})$/.test(dep)||!/^([A-Z]{4})$/.test(arr))continue;
+   const depTime=String(r[2]||''),arrTime=String(r[4]||'');let block=excelMinutes(r[13]);
+   if(!block){let a=excelMinutes(arrTime),b=excelMinutes(depTime);block=a-b;if(block<0)block+=1440;}
+   if(!block)continue;
+   const registration=String(r[6]||'').trim();const key=[date,dep,arr,registration,block].join('|');if(seen.has(key))continue;seen.add(key);
+   imported.push({id:uid(),date,flightNumber:'',aircraftType:String(r[5]||''),registration,departure:dep,arrival:arr,block,pic:excelMinutes(r[25]),sic:excelMinutes(r[27]),ifr:excelMinutes(r[23]),night:excelMinutes(r[21]),landings:(Number(r[19])||0)+(Number(r[20])||0),notes:[String(r[38]||'').trim(),String(r[41]||'').trim()].filter(Boolean).join(' · '),sbh:excelMinutes(r[15]),sourceSheet:sh.name,sourceRow:ri+1});
   }
-  out+='</tbody></table>';
-  $('sheetTableWrap').innerHTML=out;
+ }
+ return imported;
 }
-function excelCol(n){let s='';while(n){let r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s}
+async function initWorkbook(){
+ try{
+  const already=localStorage.getItem(IMPORT_KEY);if(already){return;}
+  const res=await fetch('./workbook-data.json',{cache:'no-store'});if(!res.ok)throw Error('Nie można odczytać dołączonego pliku Excel.');
+  workbookData=await res.json();localStorage.setItem(WORKBOOK_KEY,JSON.stringify(workbookData));
+  const imported=importFlightsFromWorkbook(workbookData);
+  if(imported.length){flights.push(...imported);localStorage.setItem(KEY,JSON.stringify(flights));}
+  localStorage.setItem(IMPORT_KEY,JSON.stringify({at:new Date().toISOString(),count:imported.length}));
+  render();
+ }catch(err){console.error('Excel import:',err)}
+}
 clearForm();render();initWorkbook();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
