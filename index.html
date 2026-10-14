@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.3</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.4</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.3</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.4</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -263,7 +263,13 @@ $('verifiedCsvFile').onchange=async e=>{try{
  flights.push(...imported);save();$('verifiedImportStatus').textContent=`Dodano ${imported.length} lotów. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}. Sprawdź czasy i funkcje przed zatwierdzeniem logbooka.`;$('dataStatus').textContent=$('verifiedImportStatus').textContent;alert($('verifiedImportStatus').textContent);
  }catch(err){alert('Błąd importu Verified Flights: '+(err.message||err))}finally{e.target.value=''}};
 function norm(s){return s.trim().toLowerCase().replaceAll('_',' ')}
-function parseDate(s){s=(s||'').trim();let m;if((m=s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})$/)))return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;if((m=s.match(/^(\\d{1,2})[./](\\d{1,2})[./](\\d{4})$/)))return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return ''}
+function parseDate(s){
+ s=String(s??'').trim();if(!s)return '';let m;
+ if((m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T].*)?$/))){const y=+m[1],mo=+m[2],d=+m[3];if(mo<1||mo>12||d<1||d>new Date(y,mo,0).getDate())return '';return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+ if((m=s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/))){let a=+m[1],b=+m[2],y=+m[3],d,mo;if(a>12){d=a;mo=b}else if(b>12){mo=a;d=b}else{d=a;mo=b}if(mo<1||mo>12||d<1||d>new Date(y,mo,0).getDate())return '';return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+ if(/^\d{5}(?:\.\d+)?$/.test(s)){const dt=new Date(Date.UTC(1899,11,30)+Math.floor(Number(s))*86400000);return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`}
+ return ''
+}
 function parseCSV(t){t=String(t||'').replace(/^\uFEFF/,'');const first=(t.split(/\r?\n/).find(x=>x.trim())||'');let delim=',',best=-1;for(const d of [',',';','\t']){let q=false,count=0;for(let i=0;i<first.length;i++){const c=first[i];if(c==='"'){if(q&&first[i+1]==='"')i++;else q=!q}else if(c===d&&!q)count++}if(count>best){best=count;delim=d}}let rows=[],row=[],field='',q=false;for(let i=0;i<t.length;i++){let c=t[i];if(c==='"'){if(q&&t[i+1]==='"'){field+='"';i++}else q=!q}else if(c===delim&&!q){row.push(field);field=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&t[i+1]==='\n')i++;row.push(field);rows.push(row);row=[];field=''}else field+=c}if(field||row.length){row.push(field);rows.push(row)}return rows}
 $('importJSONBtn').onclick=()=>$('jsonFile').click();
 $('jsonFile').onchange=async e=>{try{let f=e.target.files[0];if(!f)return;let obj=JSON.parse(await f.text());let list=Array.isArray(obj)?obj:obj.flights;if(!Array.isArray(list))throw Error('Nie znaleziono listy lotów.');if(!confirm(`Zastąpić obecną bazę ${list.length} wpisami z kopii?`))return;flights=list.map(f=>({...f,id:f.id||uid()}));save();$('dataStatus').textContent='Przywrócono kopię JSON.'}catch(err){alert('Błąd kopii: '+err.message)}finally{e.target.value=''}};
