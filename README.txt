@@ -1,11 +1,5 @@
-PILOT LOGBOOK — WERSJA Z WYMUSZENIEM ODŚWIEŻENIA
+Pilot Logbook — automatyczne czasy ról
 
-WAŻNE: Pliki są bezpośrednio w katalogu głównym ZIP. W repozytorium GitHub podmień index.html i sw.js z TEGO katalogu, nie z innej paczki.
+Wgraj do katalogu głównego repozytorium GitHub tylko index.html i sw.js, zastępując istniejące pliki. Nie podmieniaj workbook-data.json ani ikon.
 
-Wersja ma przycisk „Wylicz czas nocny (szacunek)”, pole typu samolotu jako listę wyboru i automatyczne przeliczanie block/PIC/Co-pilot/Dual/Instructor/PICUS.
-
-Kopia zapasowa: przed wdrożeniem wyeksportuj loty jako JSON.
-
-W GitHub: otwórz repozytorium, upewnij się, że edytujesz branch publikowany przez Pages oraz pliki w katalogu głównym, wgraj index.html i sw.js i wykonaj Commit changes.
-
-Po wdrożeniu otwórz adres: https://pomixx90-beep.github.io/pilot-logbook/?refresh=14
+PIC, Co-pilot, Dual i Instructor są wyliczane z zaznaczonych opcji: zaznaczone = block time, niezaznaczone = 00:00. PICUS jest wyliczany automatycznie z pola Dowódca / NAME PIC: gdy pole nie jest puste i nie jest SELF, PICUS = block time; w przeciwnym razie 00:00. Te pola są tylko do odczytu. IFR pozostaje ręczny, bo wymaga informacji o rzeczywistym locie. Czas nocny nadal jest automatycznie szacowany przez kalkulator.
