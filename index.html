@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.8</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.9</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.8</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.9</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -271,7 +271,18 @@ $('verifiedCsvFile').onchange=async e=>{try{
   const landingPilot=String(val(r,'LandingPilot','Landing Pilot')).trim().toUpperCase();
   const offBlock=val(r,'OffBlock','Off Block','Off-block','OffBlockUTC');
   const onBlock=val(r,'OnBlock','On Block','On-block','OnBlockUTC');
-  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:dep.toUpperCase(),arrival:arr.toUpperCase(),depTime:parseClock(offBlock),arrTime:parseClock(onBlock),block,picus:(captain&&captain.trim().toUpperCase()!=='SELF')?block:0,pic:0,sic:0,dual:0,instructor:0,ifr:0,night:0,rolePIC:false,roleCOPILOT:false,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay:0,landingsNight:0,takeoffDay:false,takeoffNight:false,notes:['Imported from Verified Flights',`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
+  const depTime=parseClock(offBlock),arrTime=parseClock(onBlock),depCode=dep.toUpperCase(),arrCode=arr.toUpperCase();
+  let takeoffDay=false,takeoffNight=false,landingsDay=0,landingsNight=0;
+  // Estimate day/night using the same civil-twilight rule as the manual form.
+  // Off/on-block are only proxies for actual takeoff/landing times.
+  try{if(date&&depTime&&arrTime&&AIRPORT_COORDS[depCode]&&AIRPORT_COORDS[arrCode]){
+   const start=Date.parse(date+'T'+depTime+':00Z');let end=Date.parse(date+'T'+arrTime+':00Z');if(end<=start)end+=86400000;
+   const nightStart=solarAltitude(new Date(start),...AIRPORT_COORDS[depCode])<=-6;
+   const nightEnd=solarAltitude(new Date(end),...AIRPORT_COORDS[arrCode])<=-6;
+   takeoffNight=nightStart;takeoffDay=!nightStart;landingsNight=nightEnd?1:0;landingsDay=nightEnd?0:1;
+  }}catch(_){/* leave flags unset if an estimate cannot be made */}
+  const isPICUS=!!(captain&&captain.trim().toUpperCase()!=='SELF');
+  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,block,picus:isPICUS?block:0,pic:0,sic:0,dual:0,instructor:0,ifr:0,night:0,rolePIC:false,roleCOPILOT:false,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`PICUS: ${isPICUS?'yes (captain different from SELF)':'no'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
   imported.push(flight);if(sourceId)existing.add(sourceId);identities.add(ident);
  }
  if(!imported.length){$('verifiedImportStatus').textContent=`Brak nowych lotów. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}

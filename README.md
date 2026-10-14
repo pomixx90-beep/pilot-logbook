@@ -1,5 +1,5 @@
-Pilot Logbook v2.2.8 — poprawka numeru wersji
+Pilot Logbook v2.2.9 — poprawka importu Verified Flights
 
-Wgraj do głównego katalogu repozytorium GitHub oba pliki: index.html i sw.js.
-Następnie Commit changes. Sprawdź, że edytujesz gałąź main i że GitHub Pages publikuje z main.
-Po publikacji nagłówek aplikacji powinien pokazywać v2.2.8. Ta paczka bazuje na poprzednim pakiecie PICUS; główną zmianą tutaj jest numer wersji i nazwa cache service workera.
+Wgraj index.html i sw.js do katalogu głównego repozytorium GitHub Pages, zastępując istniejące pliki. Przed aktualizacją wyeksportuj kopię JSON.
+
+Import nowych lotów ustawia szacunkowe checkboxy dzień/noc dla startu i lądowania na podstawie off-block/on-block i współrzędnych lotnisk. To przybliżenie, nie rzeczywisty czas startu/lądowania. PICUS nadal jest zapisywany w osobnym polu PICUS HH:MM; nie zaznaczamy Co-pilot, bo oznaczałoby to naliczenie czasu SIC.
