@@ -1,5 +1,5 @@
-Pilot Logbook v2.2.2 — poprawka importu CSV
+# Pilot Logbook v2.2.3 — Excel import
 
-Przyczyna: CSV eksportowany z Google Sheets w niektórych ustawieniach regionalnych używa średnika zamiast przecinka. Importer rozpoznawał tylko przecinek, więc widział wszystkie nagłówki jako jedną kolumnę.
+Ta wersja rozpoznaje numer wersji v2.2.3 i importuje Verified Flights bezpośrednio z pliku Excel (.xlsx/.xls) lub CSV. W arkuszu Google Sheets pobierz kartę `Flights` jako Microsoft Excel (.xlsx), a następnie wybierz `Importuj nowe Verified Flights`. Import dodaje nowe wpisy i pomija rozpoznane duplikaty.
 
-Wgraj do katalogu głównego repozytorium GitHub pliki index.html i sw.js, zastępując stare pliki. Commit changes. Po publikacji odśwież aplikację. Nie usuwaj pozostałych plików. Przed zmianą zrób eksport JSON.
+Wymaga internetu do załadowania biblioteki odczytu Excel (SheetJS). Przed aktualizacją wykonaj kopię JSON logbooka. Wgraj `index.html` i `sw.js` do głównego katalogu repozytorium GitHub.
