@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.12</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.13</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.12</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.13</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -132,17 +132,17 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.12: migrate Verified Flights entries so PICUS is represented as the supervised co-pilot role too.
-// PICUS remains a separate field; this does not mark the pilot as PIC or change the captain.
+// v2.2.13: PICUS is tracked separately and must not be counted as SIC/Co-pilot.
+// Correct previously imported Verified Flights records without changing unrelated flights.
 let roleMigrationChanged=false;
 for(const f of flights){
  const imported=String(f.notes||'').includes('Imported from Verified Flights');
  const hasDifferentCaptain=!!(f.captain&&String(f.captain).trim().toUpperCase()!=='SELF');
  if(imported&&hasDifferentCaptain&&Number(f.picus||0)>0){
   if(f.rolePIC!==false){f.rolePIC=false;roleMigrationChanged=true;}
-  if(f.roleCOPILOT!==true){f.roleCOPILOT=true;roleMigrationChanged=true;}
+  if(f.roleCOPILOT!==false){f.roleCOPILOT=false;roleMigrationChanged=true;}
   if(Number(f.pic||0)!==0){f.pic=0;roleMigrationChanged=true;}
-  if(Number(f.sic||0)!==Number(f.block||0)){f.sic=Number(f.block)||0;roleMigrationChanged=true;}
+  if(Number(f.sic||0)!==0){f.sic=0;roleMigrationChanged=true;}
  }
 }
 if(roleMigrationChanged){try{localStorage.setItem(KEY,JSON.stringify(flights));}catch(e){console.warn('Nie udało się zapisać poprawionych funkcji pilota',e)}}
@@ -303,7 +303,7 @@ $('verifiedCsvFile').onchange=async e=>{try{
   const isMyFlight=!!crewCode&&takeoffPilot===crewCode;
   const isPICUS=isMyFlight&&!!(captain&&captain.trim().toUpperCase()!=='SELF');
   const isPIC=isMyFlight&&!!(captain&&captain.trim().toUpperCase()==='SELF');
-  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,block,picus:isPICUS?block:0,pic:isPIC?block:0,sic:isPICUS?block:0,dual:0,instructor:0,ifr:0,night:0,rolePIC:isPIC,roleCOPILOT:isPICUS,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`Crew Code: ${crewCode}`,`Matched TakeOffPilot: ${isMyFlight?'yes':'no'}`,`PICUS: ${isPICUS?'yes (crew code matched; captain different from SELF)':'no'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
+  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,block,picus:isPICUS?block:0,pic:isPIC?block:0,sic:0,dual:0,instructor:0,ifr:0,night:0,rolePIC:isPIC,roleCOPILOT:false,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`Crew Code: ${crewCode}`,`Matched TakeOffPilot: ${isMyFlight?'yes':'no'}`,`PICUS: ${isPICUS?'yes (crew code matched; captain different from SELF)':'no'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
   imported.push(flight);if(sourceId)existing.add(sourceId);identities.add(ident);
  }
  if(!imported.length){$('verifiedImportStatus').textContent=`Brak nowych lotów. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}
