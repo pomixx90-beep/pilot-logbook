@@ -1,14 +1,11 @@
-PILOT LOGBOOK — STATYSTYKI ROCZNE
+PILOT LOGBOOK — WERSJA Z WYMUSZENIEM ODŚWIEŻENIA
 
-Zawartość: index.html i sw.js. Wersja nie zawiera workbook-data.json, aby nie nadpisać danych ani źródłowej bazy importu.
+WAŻNE: Pliki są bezpośrednio w katalogu głównym ZIP. W repozytorium GitHub podmień index.html i sw.js z TEGO katalogu, nie z innej paczki.
 
-WDROŻENIE NA GITHUB PAGES (iPhone):
-1. Najpierw zachowaj kopię zapasową lotów w aplikacji: Import / eksport → eksport JSON.
-2. Rozpakuj ZIP na urządzeniu.
-3. W repozytorium pomixx90-beep/pilot-logbook zastąp plik index.html plikiem z paczki i zatwierdź zmianę.
-4. Zastąp plik sw.js plikiem z paczki i zatwierdź zmianę.
-5. Poczekaj na publikację GitHub Pages, zamknij kartę aplikacji i otwórz ją ponownie w zwykłej (nieprywatnej) karcie Safari.
+Wersja ma przycisk „Wylicz czas nocny (szacunek)”, pole typu samolotu jako listę wyboru i automatyczne przeliczanie block/PIC/Co-pilot/Dual/Instructor/PICUS.
 
-WAŻNE: nie zastępuj workbook-data.json i nie importuj ponownie Excela. Aplikacja zapisuje bieżące loty lokalnie w przeglądarce. Aktualizacja kodu nie powinna kasować lokalnych wpisów. Tryb prywatny Safari ma osobny magazyn danych.
+Kopia zapasowa: przed wdrożeniem wyeksportuj loty jako JSON.
 
-Zmiany: statystyki roczne wyliczane z zapisanych lotów; wybór roku na podstawie dat lotów; zestawienie miesięczne, typów samolotów, rejestracji, destynacji i czasu według funkcji; nowy cache service workera.
+W GitHub: otwórz repozytorium, upewnij się, że edytujesz branch publikowany przez Pages oraz pliki w katalogu głównym, wgraj index.html i sw.js i wykonaj Commit changes.
+
+Po wdrożeniu otwórz adres: https://pomixx90-beep.github.io/pilot-logbook/?refresh=14
