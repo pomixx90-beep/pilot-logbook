@@ -1,11 +1,17 @@
-# Pilot Logbook PWA — updated flight-entry form
+# Pilot Logbook — aktualizacja statystyk
 
-This package updates the flight-entry form while preserving the existing imported workbook data.
+## Co się zmieniło
+- Dodano wybór roku w sekcji „Statystyki roczne”.
+- Statystyki miesięczne, typy samolotów, rejestracje, destynacje i czasy funkcji są liczone bezpośrednio z wpisów lotów dla wybranego roku.
+- Usunięto statyczne wartości kopiowane z arkusza Excel „Statistic”.
+- Zmieniono cache Service Workera na `pilot-logbook-v7`.
+- Pozostawiono dotychczasowy klucz i wersję importu, aby aktualizacja kodu nie nadpisała lokalnych wpisów użytkownika.
 
-- Block time is calculated from off-block and on-block times entered in UTC (including overnight flights).
-- Boeing aircraft types automatically set IFR time equal to block time as requested; check this against the actual flight conditions before relying on the entry.
-- Pilot functions are selectable with checkboxes: PIC, Co-pilot, Dual, Instructor. Selected function time is set to block time and can be adjusted if only part of the flight applies.
-- Night time remains editable and is not guessed automatically. EASA defines night as the period between the end of evening civil twilight and the beginning of morning civil twilight, or another period prescribed by the competent authority; there is no universal EASA rule that simply adds/subtracts 30 minutes from block time.
-- Existing flight data and workbook-data.json are retained. No import version bump is performed, to avoid overwriting local entries.
+## Aktualizacja na GitHub Pages z iPhone’a
+1. Otwórz repozytorium `pomixx90-beep/pilot-logbook` na GitHubie.
+2. Zastąp w katalogu głównym plik `index.html` nowym plikiem z tego ZIP-a.
+3. Zastąp w katalogu głównym plik `sw.js` nowym plikiem z tego ZIP-a.
+4. Zapisz zmiany/commit.
+5. Po publikacji otwórz stronę ponownie. Jeśli widzisz starą wersję, zamknij kartę i otwórz stronę ponownie; nowy cache Service Workera ma nazwę `pilot-logbook-v7`.
 
-Upload the files to the root of the GitHub Pages repository, replacing index.html and sw.js (other files can remain unchanged).
+Nie podmieniaj `workbook-data.json`, jeśli nie chcesz zmieniać przygotowanej bazy importu. Przed aktualizacją zachowaj kopię JSON z aplikacji.
