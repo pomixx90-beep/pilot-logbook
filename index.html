@@ -110,10 +110,14 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 </main>
 <script>
 const KEY='pilot-logbook-flights-v1';
+const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
 const $=id=>document.getElementById(id);
-function loadFlights(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return []}}
-function save(){localStorage.setItem(KEY,JSON.stringify(flights));render()}
+function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
+function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
+async function durableWrite(){try{const db=await openDurableDB();await new Promise((resolve,reject)=>{const tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put({flights,savedAt:Date.now()},'main');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});db.close()}catch(e){console.warn('Kopia IndexedDB niedostępna:',e)}}
+async function restoreDurableIfNeeded(){try{const local=loadFlights();const db=await openDurableDB();const state=await new Promise((resolve,reject)=>{const req=db.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).get('main');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});db.close();if(local.length){flights=local;await durableWrite();return}if(state&&Array.isArray(state.flights)&&state.flights.length){flights=state.flights;localStorage.setItem(KEY,JSON.stringify(flights));if($('dataStatus'))$('dataStatus').textContent='Odzyskano '+flights.length+' lotów z lokalnej kopii zapasowej.'}}catch(e){console.warn('Nie udało się odczytać lokalnej kopii:',e)}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(flights));}catch(e){alert('Nie udało się zapisać danych w Safari. Wyeksportuj kopię JSON i sprawdź miejsce na urządzeniu.');console.error(e)}durableWrite();render()}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function minutes(v){v=String(v||'0:00').trim().replace(',','.');if(!v)return 0;if(v.includes(':')){let p=v.split(':');if(p.length!==2||!/^\\d+$/.test(p[0])||!/^\\d{1,2}$/.test(p[1])||+p[1]>=60)throw Error('Nieprawidłowy czas: '+v);return +p[0]*60 + +p[1]}let n=Number(v);if(!Number.isFinite(n)||n<0)throw Error('Nieprawidłowy czas: '+v);return Math.round(n*60)}
 function fmt(n){n=Math.max(0,Math.round(n||0));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
@@ -186,16 +190,19 @@ function excelDate(v){if(!v)return '';let s=String(v);let m=s.match(/^(\d{4})-(\
 function excelMinutes(v){if(v==null||v==='')return 0;let s=String(v).trim();let m=s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);if(m)return (+m[1])*60+(+m[2])+(+(m[3]||0)>=30?1:0);let n=Number(v);return Number.isFinite(n)&&n>0?Math.round(n*1440):0}
 function enrichCaptainData(data){
  const sheets=new Map((data.sheets||[]).map(sh=>[sh.name,sh.rows||[]]));
- for(const f of (data.flights||flights)){
-  if(f.captain && f.picus!=null) continue;
+ for(const f of (data.flights||[])){
   const rows=sheets.get(f.sourceSheet); if(!rows) continue;
-  const idx=Number(f.sourceRow); const r=rows[idx] || rows[idx-1]; if(!r) continue;
+  const idx=Number(f.sourceRow); const r=rows[Math.max(0,idx-1)]; if(!r) continue;
   const captain=String(r[16]||'').trim();
-  if(!f.captain && captain) f.captain=captain;
-  const isSelf=!captain || /^SELF$/i.test(captain);
-  if(f.picus==null || f.picus===0) f.picus=(!isSelf ? (Number(f.block)||0) : 0);
+  f.captain=captain;
+  f.pic=excelMinutes(r[25]); f.sic=excelMinutes(r[27]);
+  f.dual=excelMinutes(r[29]); f.instructor=excelMinutes(r[31]);
+  f.ifr=excelMinutes(r[23]); f.night=excelMinutes(r[21]); f.sbh=excelMinutes(r[15]);
+  f.landings=(Number(r[19])||0)+(Number(r[20])||0);
+  f.picus=(captain && !/^SELF$/i.test(captain))?(Number(f.block)||0):0;
  }
 }
+
 function importFlightsFromWorkbook(data){
  let imported=[]; const seen=new Set(flights.map(f=>[f.date,f.departure,f.arrival,f.registration,Number(f.block)||0].join('|')));
  for(const sh of data.sheets||[]){ if(!/^\d{4}$/.test(sh.name)&&!/^Winter/i.test(sh.name))continue;
@@ -212,27 +219,29 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='4';
+  const importVersion='5';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=4',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=5',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
   // Refresh workbook-derived records with captain/PICUS while retaining manually added flights.
   const oldById=new Map(flights.map(f=>[f.id,f]));
   enrichCaptainData(workbookData);
-  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};return {...f,...old,id:f.id||old.id||uid(),captain:old.captain||f.captain||'',picus:old.picus!=null?old.picus:(f.picus||0)}});
+  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};const keep=(k)=>Number(old[k])>0?old[k]:f[k];return {...old,...f,id:f.id||old.id||uid(),captain:f.captain||old.captain||'',picus:f.picus||0,pic:keep('pic'),sic:keep('sic'),dual:keep('dual'),instructor:keep('instructor'),ifr:keep('ifr'),night:keep('night'),sbh:keep('sbh'),landings:keep('landings')}});
   const sourceIds=new Set(refreshed.map(f=>f.id));
   const manual=flights.filter(f=>!f.sourceSheet&&!sourceIds.has(f.id));
   flights=[...refreshed,...manual];
   localStorage.setItem(KEY,JSON.stringify(flights));
+  await durableWrite();
   localStorage.setItem(IMPORT_KEY,importVersion);
   localStorage.setItem(WORKBOOK_KEY,JSON.stringify(workbookData));
   render();
   if($('dataStatus'))$('dataStatus').textContent=`Zaimportowano ${flights.length} lotów z arkuszy rocznych.`;
  }catch(err){console.error('Excel import:',err);if($('dataStatus'))$('dataStatus').textContent='Błąd importu: '+err.message}
 }
-clearForm();render();initWorkbook();
+clearForm();
+(async()=>{await restoreDurableIfNeeded();render();await initWorkbook()})();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
 </body></html>
