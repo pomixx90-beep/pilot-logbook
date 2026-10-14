@@ -1,22 +1,18 @@
-# Pilot Logbook PWA — wersja na iPhone'a
+# Pilot Logbook PWA — iPhone
 
-To jest prototyp aplikacji webowej offline-first. Zawiera dodawanie/edycję/usuwanie lotów, statystyki, wskaźniki czasu lotu, import CSV z Excela oraz eksport CSV i kopii JSON.
+Pakiet zawiera aplikację Pilot Logbook oraz dane wczytane z przesłanego pliku `Logbook.xlsx`.
 
-## Ważne ograniczenie
-Dane są przechowywane lokalnie w przeglądarce. Automatyczna synchronizacja z chmurą między urządzeniami nie jest włączona, bo wymaga hostingu HTTPS i skonfigurowanego backendu/autoryzacji. Nie należy traktować kopii lokalnej jako jedynej kopii danych.
+## Import danych z Excela
+- Przy pierwszym uruchomieniu aplikacja automatycznie wczytuje `workbook-data.json` i zapisuje kopię w lokalnej pamięci przeglądarki.
+- Zakładka **Arkusze Excel** pokazuje wszystkie arkusze z pliku, także ukryte, wraz z wierszami i kolumnami. Można wybrać zakładkę, wyszukiwać tekst i wyeksportować dane do JSON.
+- Nazwy arkuszy i układ kolumn są zachowane. Komórki z formułami są przechowywane jako tekst formuły, a formuły nie są przeliczane przez aplikację.
+- To import jednorazowy z kopii pliku. Zmiany w późniejszej wersji pliku Excel nie pojawią się automatycznie — trzeba przygotować nowy pakiet z aktualnym plikiem.
 
-## Uruchomienie na iPhonie
-Do instalacji jako PWA pliki muszą być udostępnione przez adres HTTPS. Samo otwarcie pliku HTML z aplikacji Pliki nie wystarczy do instalacji PWA ani działania service workera.
-1. Umieść zawartość tego folderu na hostingu HTTPS obsługującym pliki statyczne.
-2. Otwórz adres w Safari na iPhonie.
-3. Naciśnij Udostępnij → Dodaj do ekranu początkowego.
-4. Uruchom ikonę Pilot Logbook.
-5. Przed dodawaniem prawdziwych danych przetestuj eksport JSON i kopię zapasową.
+## Instalacja na iPhonie
+1. Umieść wszystkie pliki z folderu na hostingu HTTPS (np. w repozytorium GitHub Pages), nie tylko `index.html`.
+2. Otwórz stronę w Safari.
+3. Wybierz **Udostępnij → Dodaj do ekranu początkowego**.
+4. Otwórz aplikację z ikony. Przy pierwszym uruchomieniu wymagane jest połączenie z internetem, aby pobrać pakiet danych; potem pliki aplikacji są buforowane do pracy offline.
 
-## Import CSV
-W Excelu wybierz Zapisz jako → CSV UTF-8. Oczekiwane nagłówki m.in.:
-Date, Flight Number, Aircraft Type, Registration, Departure, Arrival, Block Time, PIC, SIC, IFR, Night, Landings, Notes
-Daty: yyyy-MM-dd lub dd.MM.yyyy. Czas: HH:MM lub liczba godzin dziesiętnie.
-
-## EASA / FTL
-Wskaźniki 100:00/28 dni i 900:00/365 dni są prostymi sumami wpisanego block time. Nie są kompletną kontrolą zgodności FTL. Do zastosowania operacyjnego potrzebna jest walidacja wobec aktualnych przepisów oraz zatwierdzonego schematu operatora.
+## Przechowywanie
+Dane są zapisane lokalnie na urządzeniu. Nie są wysyłane do serwera. Wyczyść dane witryny tylko po wykonaniu kopii zapasowej.
