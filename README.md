@@ -15,3 +15,6 @@
 5. Po publikacji otwórz stronę ponownie. Jeśli widzisz starą wersję, zamknij kartę i otwórz stronę ponownie; nowy cache Service Workera ma nazwę `pilot-logbook-v7`.
 
 Nie podmieniaj `workbook-data.json`, jeśli nie chcesz zmieniać przygotowanej bazy importu. Przed aktualizacją zachowaj kopię JSON z aplikacji.
+
+
+Wersja mapfix: przebudowuje mapowanie kolumn na podstawie nagłówków NAME PIC/PIC/IFR itp. i ponownie odświeża dane arkusza (import v6). Zapis lokalny porównuje czas zapisu localStorage i IndexedDB, aby odtworzyć nowszą kopię. Przed wdrożeniem wyeksportuj JSON; po wdrożeniu przywróć kopię, jeśli lotów brakuje.
