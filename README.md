@@ -1,5 +1,10 @@
-Pilot Logbook v2.2.4 — poprawka dat Verified Flights
+# Pilot Logbook v2.2.6 — poprawka importu Verified Flights
 
-Zmiany: numer wersji i cache zmienione na v2.2.4; parser dat obsługuje yyyy/mm/dd (format używany przez import mailowy), yyyy-mm-dd, daty z ukośnikiem/kropką oraz daty seryjne Excela.
+Ta wersja:
+- zmienia widoczny numer wersji na v2.2.6;
+- rozpoznaje nagłówki Excela niezależnie od spacji, podkreśleń i wielkości liter;
+- pobiera godziny z kolumn Off Block / On Block i konwertuje je do HH:MM;
+- zachowuje funkcję FO jako Co-pilot (SIC); pilotowanie startu lub lądowania nie oznacza funkcji PIC;
+- zapisuje informacje Pilot Flying, Takeoff pilot i Landing pilot w uwagach.
 
-Wgraj do głównego katalogu repozytorium GitHub pliki index.html i sw.js, zastępując poprzednie. Nie usuwaj pozostałych plików. Przed zmianą wykonaj eksport JSON logbooka.
+Przed wdrożeniem wyeksportuj kopię JSON. Wgraj `index.html` i `sw.js` do głównego katalogu repozytorium, zastępując istniejące pliki, i wykonaj Commit changes.

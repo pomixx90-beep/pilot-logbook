@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.4</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.6</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.4</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.6</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -147,7 +147,7 @@ function sum(list){return list.reduce((a,f)=>a+(+f.block||0),0)}
 function startDays(n){let d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(n-1));return d}
 function startOfYear(){const d=new Date();return new Date(d.getFullYear(),0,1)}
 function within(f,d){return dateObj(f.date)>=d && dateObj(f.date)<=new Date()}
-function sorted(){return [...flights].sort((a,b)=>b.date.localeCompare(a.date))}
+function sorted(){return [...flights].sort((a,b)=>{const d=String(b.date||'').localeCompare(String(a.date||''));if(d)return d;const t=String(b.depTime||'').localeCompare(String(a.depTime||''));if(t)return t;return String(b.id||'').localeCompare(String(a.id||''))})}
 function flightHTML(f){return `<div class="flight"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'bez numeru')} · ${esc(f.aircraftType||'')} ${esc(f.registration||'')}</div><div class="meta">Dowódca: ${esc(f.captain||'Nie podano')} · PICUS ${fmt(f.picus||0)}</div><div class="meta">PIC ${fmt(f.pic)} · SIC ${fmt(f.sic)} · IFR ${fmt(f.ifr)} · Noc ${fmt(f.night)}</div><div class="row" style="margin-top:8px"><button class="secondary" onclick="editFlight('${f.id}')">Edytuj</button><button class="secondary danger" onclick="deleteFlight('${f.id}')">Usuń</button></div></div><div class="time">${fmt(f.block)}</div></div>`}
 function limitHTML(title,value,limit){let pct=Math.min(100,value/limit*100),over=value>=limit;return `<div class="${over?'warning':''}" style="border-radius:12px;padding:2px"><strong>${title}: ${fmt(value)} / ${fmt(limit)}</strong><div style="height:7px;background:#26394d;border-radius:9px;margin:10px 0 6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${over?'#ff8888':'#7dc6ff'}"></div></div><span class="sub">${over?'Osiągnięto lub przekroczono próg.':'Wykorzystano '+pct.toFixed(0)+'% progu.'}</span></div>`}
 const MONTHS=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
@@ -242,20 +242,36 @@ $('exportCSV').onclick=csvExport;$('historyExport').onclick=csvExport;
 $('exportJSON').onclick=()=>download('pilot-logbook-backup.json',JSON.stringify({version:1,exportedAt:new Date().toISOString(),flights},null,2),'application/json');
 $('chooseCSV').onclick=()=>$('csvFile').click();
 $('csvFile').onchange=async e=>{try{let file=e.target.files[0];if(!file)return;let text=await file.text();let rows=parseCSV(text);if(!rows.length)throw Error('Plik jest pusty.');let hs=rows[0].map(norm);let idx=(...names)=>hs.findIndex(h=>names.includes(h));let di=idx('date','flight date','flightdate','data');if(di<0)throw Error('Brak kolumny Date/Data/FlightDate. Użyj importu „Importuj nowe Verified Flights” dla arkusza Verified Flights.');let get=(r,...names)=>{let i=idx(...names);return i>=0?(r[i]||'').trim():''};let newF=[];for(let n=1;n<rows.length;n++){let r=rows[n];if(!r.some(x=>x.trim()))continue;let raw=r[di];let d=parseDate(raw);if(!d)throw Error('Nieprawidłowa data w wierszu '+(n+1)+': '+raw);newF.push({id:uid(),date:d,flightNumber:get(r,'flight number','flight no','flight','numer lotu'),aircraftType:get(r,'aircraft type','type','aircraft','typ samolotu'),registration:get(r,'registration','reg','rejestracja'),departure:get(r,'departure','from','dep','odlot').toUpperCase(),arrival:get(r,'arrival','destination','to','arr','przylot').toUpperCase(),block:minutes(get(r,'block time','total time','total','block','czas lotu')),pic:minutes(get(r,'pic','pic time')),sic:minutes(get(r,'sic','copilot','co-pilot','sic time')),ifr:minutes(get(r,'ifr','ifr time')),night:minutes(get(r,'night','night time')),landings:Number(get(r,'landings','landing','ldg','lądowania')||1),notes:get(r,'notes','remarks','comments','uwagi')})}if(!newF.length)throw Error('Nie znaleziono wpisów do importu.');if(confirm(`Zaimportować ${newF.length} lotów? Wpisy zostaną dodane do istniejących.`)){flights.push(...newF);save();$('dataStatus').textContent=`Zaimportowano ${newF.length} lotów.`} }catch(err){alert('Błąd importu: '+err.message)}finally{e.target.value=''}};
+function parseClock(value){
+ const v=String(value??'').trim();if(!v)return '';
+ let m=v.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);if(m)return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
+ m=v.match(/^(\d{1,2})\.(\d{2})$/);if(m)return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
+ const n=Number(v);if(Number.isFinite(n)&&n>=0&&n<1){const mins=Math.round(n*1440);return `${String(Math.floor(mins/60)%24).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;}
+ const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+ return '';
+}
 $('chooseVerifiedCSV').onclick=()=>$('verifiedCsvFile').click();
 $('verifiedCsvFile').onchange=async e=>{try{
  const file=e.target.files[0];if(!file)return;let rows;const ext=(file.name.split('.').pop()||'').toLowerCase();if(ext==='xlsx'||ext==='xls'){if(!window.XLSX)throw Error('Nie udało się załadować czytnika Excel. Otwórz aplikację z internetem i spróbuj ponownie.');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});const ws=wb.Sheets['Flights']||wb.Sheets[wb.SheetNames[0]];if(!ws)throw Error('Plik Excel nie zawiera arkusza.');rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});}else{const raw=await file.text();rows=parseCSV(raw)}if(rows.length<2)throw Error('Plik nie zawiera lotów.');
- const hs=rows[0].map(h=>String(h??'').trim().replace(/^\uFEFF/,''));const col=name=>hs.findIndex(h=>h.toLowerCase()===name.toLowerCase());
- const val=(r,name)=>{const i=col(name);return i<0?'':String(r[i]??'').trim()};
- if(col('FlightDate')<0||col('FlightNumber')<0||col('ImportKey')<0)throw Error('To nie jest arkusz Verified Flights (brak FlightDate, FlightNumber lub ImportKey).');
+ const hs=rows[0].map(h=>String(h??'').trim().replace(/^\uFEFF/,''));
+ const key=s=>String(s??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+ const col=(...names)=>hs.findIndex(h=>names.some(name=>key(h)===key(name)));
+ const val=(r,...names)=>{const i=col(...names);return i<0?'':String(r[i]??'').trim()};
+ const first=(r,...names)=>val(r,...names);
+ if(col('FlightDate','Date')<0||col('FlightNumber')<0||col('ImportKey')<0)throw Error('To nie jest arkusz Verified Flights (brak FlightDate, FlightNumber lub ImportKey).');
  const existing=new Set(flights.map(f=>f.sourceId).filter(Boolean));const identities=new Set(flights.map(f=>[f.date,String(f.flightNumber||'').toUpperCase(),String(f.departure||'').toUpperCase(),String(f.arrival||'').toUpperCase()].join('|')));
  const imported=[];let skipped=0,invalid=0;
  for(let n=1;n<rows.length;n++){const r=rows[n];if(!r.some(x=>String(x||'').trim()))continue;
-  const date=parseDate(val(r,'FlightDate'));const fn=val(r,'FlightNumber');const sourceId=val(r,'ImportKey');const dep=val(r,'DepartureICAO')||val(r,'DepartureIATA');const arr=val(r,'ArrivalICAO')||val(r,'ArrivalIATA');const blockText=val(r,'TotalBlock');
+  const date=parseDate(val(r,'FlightDate','Date'));const fn=val(r,'FlightNumber');const sourceId=val(r,'ImportKey');const dep=val(r,'DepartureICAO')||val(r,'DepartureIATA');const arr=val(r,'ArrivalICAO')||val(r,'ArrivalIATA');const blockText=val(r,'TotalBlock','Total Block','BlockTime');
   if(!date||!fn||!dep||!arr||!blockText){invalid++;continue}
   const ident=[date,fn.toUpperCase(),dep.toUpperCase(),arr.toUpperCase()].join('|');if((sourceId&&existing.has(sourceId))||identities.has(ident)){skipped++;continue}
   let block;try{block=minutes(blockText)}catch{invalid++;continue}if(block<=0){invalid++;continue}
-  const captain=val(r,'Captain');const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration'),captain,departure:dep.toUpperCase(),arrival:arr.toUpperCase(),depTime:val(r,'OffBlock'),arrTime:val(r,'OnBlock'),block,picus:(captain&&captain.trim().toUpperCase()!=='SELF')?block:0,pic:0,sic:block,dual:0,instructor:0,ifr:0,night:0,rolePIC:false,roleCOPILOT:true,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay:0,landingsNight:0,takeoffDay:false,takeoffNight:false,notes:['Imported from Verified Flights',val(r,'CaptainRemarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
+  const captain=val(r,'Captain');const pilot=String(val(r,'PilotFlying','Pilot Flying')).trim().toUpperCase();
+  const takeoffPilot=String(val(r,'TakeOffPilot','Take Off Pilot')).trim().toUpperCase();
+  const landingPilot=String(val(r,'LandingPilot','Landing Pilot')).trim().toUpperCase();
+  const offBlock=val(r,'OffBlock','Off Block','Off-block','OffBlockUTC');
+  const onBlock=val(r,'OnBlock','On Block','On-block','OnBlockUTC');
+  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:dep.toUpperCase(),arrival:arr.toUpperCase(),depTime:parseClock(offBlock),arrTime:parseClock(onBlock),block,picus:(captain&&captain.trim().toUpperCase()!=='SELF')?block:0,pic:0,sic:block,dual:0,instructor:0,ifr:0,night:0,rolePIC:false,roleCOPILOT:true,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay:0,landingsNight:0,takeoffDay:false,takeoffNight:false,notes:['Imported from Verified Flights',`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
   imported.push(flight);if(sourceId)existing.add(sourceId);identities.add(ident);
  }
  if(!imported.length){$('verifiedImportStatus').textContent=`Brak nowych lotów. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}
