@@ -36,13 +36,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 </style>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.1</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.1</span></h2>
+<h2>Podsumowanie <span class="version">v2.2</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -112,6 +112,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 
 <section id="data" class="view">
 <h2>Dane i kopie zapasowe</h2>
+<div class="panel"><strong>Import z Google Sheets — Verified Flights</strong><p class="sub">W arkuszu „Pilot Logbook - Verified Flights Inbox” wybierz kartę Flights i pobierz ją jako CSV. Import dodaje tylko nowe loty, zachowuje istniejące wpisy i pomija duplikaty.</p><button class="primary" id="chooseVerifiedCSV">Importuj nowe Verified Flights</button><input id="verifiedCsvFile" type="file" accept=".csv,text/csv,text/plain" class="hidden"><p class="sub" id="verifiedImportStatus">Import ręczny z prywatnego arkusza; bez udostępniania arkusza publicznie.</p></div>
 <div class="panel">
 <p>Importuj CSV zapisany z Excela jako „CSV UTF-8”. Możesz też wyeksportować wszystkie wpisy do pliku CSV lub kopii JSON.</p>
 <button class="primary" id="chooseCSV">Importuj CSV z Excela</button><input id="csvFile" type="file" accept=".csv,text/csv,text/plain" class="hidden">
@@ -240,6 +241,26 @@ $('exportCSV').onclick=csvExport;$('historyExport').onclick=csvExport;
 $('exportJSON').onclick=()=>download('pilot-logbook-backup.json',JSON.stringify({version:1,exportedAt:new Date().toISOString(),flights},null,2),'application/json');
 $('chooseCSV').onclick=()=>$('csvFile').click();
 $('csvFile').onchange=async e=>{try{let file=e.target.files[0];if(!file)return;let text=await file.text();let rows=parseCSV(text);if(!rows.length)throw Error('Plik jest pusty.');let hs=rows[0].map(norm);let idx=(...names)=>hs.findIndex(h=>names.includes(h));let di=idx('date','flight date','data');if(di<0)throw Error('Brak kolumny Date/Data.');let get=(r,...names)=>{let i=idx(...names);return i>=0?(r[i]||'').trim():''};let newF=[];for(let n=1;n<rows.length;n++){let r=rows[n];if(!r.some(x=>x.trim()))continue;let raw=r[di];let d=parseDate(raw);if(!d)throw Error('Nieprawidłowa data w wierszu '+(n+1)+': '+raw);newF.push({id:uid(),date:d,flightNumber:get(r,'flight number','flight no','flight','numer lotu'),aircraftType:get(r,'aircraft type','type','aircraft','typ samolotu'),registration:get(r,'registration','reg','rejestracja'),departure:get(r,'departure','from','dep','odlot').toUpperCase(),arrival:get(r,'arrival','destination','to','arr','przylot').toUpperCase(),block:minutes(get(r,'block time','total time','total','block','czas lotu')),pic:minutes(get(r,'pic','pic time')),sic:minutes(get(r,'sic','copilot','co-pilot','sic time')),ifr:minutes(get(r,'ifr','ifr time')),night:minutes(get(r,'night','night time')),landings:Number(get(r,'landings','landing','ldg','lądowania')||1),notes:get(r,'notes','remarks','comments','uwagi')})}if(!newF.length)throw Error('Nie znaleziono wpisów do importu.');if(confirm(`Zaimportować ${newF.length} lotów? Wpisy zostaną dodane do istniejących.`)){flights.push(...newF);save();$('dataStatus').textContent=`Zaimportowano ${newF.length} lotów.`} }catch(err){alert('Błąd importu: '+err.message)}finally{e.target.value=''}};
+$('chooseVerifiedCSV').onclick=()=>$('verifiedCsvFile').click();
+$('verifiedCsvFile').onchange=async e=>{try{
+ const file=e.target.files[0];if(!file)return;const raw=await file.text();const rows=parseCSV(raw);if(rows.length<2)throw Error('CSV nie zawiera lotów.');
+ const hs=rows[0].map(h=>h.trim().replace(/^\uFEFF/,''));const col=name=>hs.findIndex(h=>h.toLowerCase()===name.toLowerCase());
+ const val=(r,name)=>{const i=col(name);return i<0?'':String(r[i]??'').trim()};
+ if(col('FlightDate')<0||col('FlightNumber')<0||col('ImportKey')<0)throw Error('To nie jest arkusz Verified Flights (brak FlightDate, FlightNumber lub ImportKey).');
+ const existing=new Set(flights.map(f=>f.sourceId).filter(Boolean));const identities=new Set(flights.map(f=>[f.date,String(f.flightNumber||'').toUpperCase(),String(f.departure||'').toUpperCase(),String(f.arrival||'').toUpperCase()].join('|')));
+ const imported=[];let skipped=0,invalid=0;
+ for(let n=1;n<rows.length;n++){const r=rows[n];if(!r.some(x=>String(x||'').trim()))continue;
+  const date=parseDate(val(r,'FlightDate'));const fn=val(r,'FlightNumber');const sourceId=val(r,'ImportKey');const dep=val(r,'DepartureICAO')||val(r,'DepartureIATA');const arr=val(r,'ArrivalICAO')||val(r,'ArrivalIATA');const blockText=val(r,'TotalBlock');
+  if(!date||!fn||!dep||!arr||!blockText){invalid++;continue}
+  const ident=[date,fn.toUpperCase(),dep.toUpperCase(),arr.toUpperCase()].join('|');if((sourceId&&existing.has(sourceId))||identities.has(ident)){skipped++;continue}
+  let block;try{block=minutes(blockText)}catch{invalid++;continue}if(block<=0){invalid++;continue}
+  const captain=val(r,'Captain');const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration'),captain,departure:dep.toUpperCase(),arrival:arr.toUpperCase(),depTime:val(r,'OffBlock'),arrTime:val(r,'OnBlock'),block,picus:(captain&&captain.trim().toUpperCase()!=='SELF')?block:0,pic:0,sic:block,dual:0,instructor:0,ifr:0,night:0,rolePIC:false,roleCOPILOT:true,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay:0,landingsNight:0,takeoffDay:false,takeoffNight:false,notes:['Imported from Verified Flights',val(r,'CaptainRemarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
+  imported.push(flight);if(sourceId)existing.add(sourceId);identities.add(ident);
+ }
+ if(!imported.length){$('verifiedImportStatus').textContent=`Brak nowych lotów. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}
+ if(!confirm(`Dodać ${imported.length} nowych lotów? Pominięte duplikaty: ${skipped}. Nie zmieni to istniejących wpisów.`))return;
+ flights.push(...imported);save();$('verifiedImportStatus').textContent=`Dodano ${imported.length} lotów. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}. Sprawdź czasy i funkcje przed zatwierdzeniem logbooka.`;$('dataStatus').textContent=$('verifiedImportStatus').textContent;alert($('verifiedImportStatus').textContent);
+ }catch(err){alert('Błąd importu Verified Flights: '+(err.message||err))}finally{e.target.value=''}};
 function norm(s){return s.trim().toLowerCase().replaceAll('_',' ')}
 function parseDate(s){s=(s||'').trim();let m;if((m=s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})$/)))return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;if((m=s.match(/^(\\d{1,2})[./](\\d{1,2})[./](\\d{4})$/)))return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return ''}
 function parseCSV(t){let rows=[],row=[],field='',q=false;for(let i=0;i<t.length;i++){let c=t[i];if(c==='"'){if(q&&t[i+1]==='"'){field+='"';i++}else q=!q}else if(c===','&&!q){row.push(field);field=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&t[i+1]==='\n')i++;row.push(field);rows.push(row);row=[];field=''}else field+=c}if(field||row.length){row.push(field);rows.push(row)}return rows}

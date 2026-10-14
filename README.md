@@ -1,37 +1,12 @@
-# Pilot Logbook — raporty i lądowania
+# Pilot Logbook v2.2 — import z prywatnego Google Sheets
 
-Zmiany w tej wersji:
-- podsumowanie Dashboardu przeniesione do Raporty → Czas; Dashboard pokazuje ostatnie loty;
-- trasy w obie strony łączone w jeden wiersz z osobnymi sektorami i czasami dla każdego kierunku;
-- typ samolotu w ręcznym formularzu to lista Boeing 737-700 / 737-800 / 737-8200;
-- lądowania dzień/noc wybierane checkboxami i zapisywane osobno; importowane wartości dzienne/nocne są zachowywane, gdy są dostępne;
-- cache service workera zwiększony do nowej wersji.
+## Co dodano
+- Import CSV z arkusza `Pilot Logbook - Verified Flights Inbox` / karta `Flights`.
+- Dodawane są tylko nowe wpisy; import pomija istniejące `ImportKey` i duplikaty data + numer lotu + trasa.
+- Istniejące wpisy nie są nadpisywane. Zrób kopię JSON przed importem.
 
-Czas nocny: nie naliczam go automatycznie z samego off-block/on-block, bo nie są to dokładne czasy take-off/landing ani pozycja samolotu w trakcie lotu. Proponowany mechanizm opisano w odpowiedzi; obecnie pole Night pozostaje ręczne.
+## Ograniczenie
+To jest bezpieczny import ręczny CSV, nie automatyczna synchronizacja OAuth. Aplikacja nie otrzymuje dostępu do prywatnego arkusza i nie ma żadnego tokena w publicznym repozytorium. Sprawdź czasy, typ samolotu, IFR, lądowania i role przed użyciem jako oficjalnego logbooka.
 
-Przed podmianą plików wykonaj eksport JSON. W GitHub Pages zastąp index.html i sw.js; pozostaw workbook-data.json, manifest.json i ikony.
-
-
-## Czas nocny — kalkulator lokalny
-
-Formularz lotu zawiera przycisk „Wylicz czas nocny (szacunek)”. Kalkulator działa offline i wykorzystuje lokalną tabelę współrzędnych lotnisk oraz obliczenie wysokości Słońca; granicą nocy jest zmierzch cywilny (Słońce na wysokości -6°). Trasę przybliża odcinek wielkiego koła między lotniskiem wylotu i przylotu, a czas opiera na godzinach off-block/on-block UTC. To tylko szacunek: block time obejmuje kołowanie, a rzeczywiste czasy startu/lądowania i przebieg trasy mogą się różnić. Użytkownik może ręcznie poprawić pole „Noc”. Jeśli kodu ICAO nie ma w lokalnej tabeli, kalkulator poprosi o ręczne wpisanie wartości.
-
-
-## v1.7
-- Naprawione ponowne wyliczanie block time, PIC/Co-pilot/Dual/Instructor oraz PICUS przy zmianie czasu, nazwiska i funkcji oraz przy zapisie.
-- Dodane widoczne listy wyboru lotnisk z lotnisk występujących w poprzednich lotach i lokalnej listy współrzędnych. Można nadal wpisać kod ICAO ręcznie.
-- Zmieniona nazwa cache Service Workera.
-
-
-## v2.0 — naprawa danych raportów
-- Zwiększono wersję importu Excela do 9, aby naprawić wcześniej zaimportowane rekordy bez NAME PIC i czasów funkcji.
-- Mapowanie kolumn jest ustalane na podstawie nagłówków arkusza; poprawiono kolumnę lądowań nocnych.
-- PICUS jest przeliczany na podstawie NAME PIC i block time przy migracji danych.
-- Zmieniono cache Service Workera.
-
-
-## v2.1 — PICUS i lądowania z Excela
-- PICUS = czas PIC z arkusza Excel tylko wtedy, gdy NAME PIC nie jest SELF i czas PIC jest większy od zera.
-- Lądowania dzień/noc odczytywane bezpośrednio z właściwych kolumn arkuszy, z uwzględnieniem przesunięcia kolumn od 2025 r.
-- SELF jest wyświetlany jako rzeczywista wartość NAME PIC; „Nie podano” oznacza wyłącznie puste pole.
-- Import wersja 10 i nowy cache Service Workera.
+## Wdrożenie na GitHub Pages
+Zastąp w repozytorium pliki `index.html` i `sw.js` plikami z tego pakietu. Pozostałe pliki nie są zmienione. Po wdrożeniu otwórz aplikację i wybierz „Odśwież aplikację”. Najpierw wyeksportuj kopię JSON z obecnej aplikacji.
