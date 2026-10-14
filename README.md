@@ -28,3 +28,10 @@ Formularz lotu zawiera przycisk „Wylicz czas nocny (szacunek)”. Kalkulator d
 - Mapowanie kolumn jest ustalane na podstawie nagłówków arkusza; poprawiono kolumnę lądowań nocnych.
 - PICUS jest przeliczany na podstawie NAME PIC i block time przy migracji danych.
 - Zmieniono cache Service Workera.
+
+
+## v2.1 — PICUS i lądowania z Excela
+- PICUS = czas PIC z arkusza Excel tylko wtedy, gdy NAME PIC nie jest SELF i czas PIC jest większy od zera.
+- Lądowania dzień/noc odczytywane bezpośrednio z właściwych kolumn arkuszy, z uwzględnieniem przesunięcia kolumn od 2025 r.
+- SELF jest wyświetlany jako rzeczywista wartość NAME PIC; „Nie podano” oznacza wyłącznie puste pole.
+- Import wersja 10 i nowy cache Service Workera.

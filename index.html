@@ -36,13 +36,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 </style>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.0</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.1</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.0</span></h2>
+<h2>Podsumowanie <span class="version">v2.1</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -124,7 +124,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>Pilot Logbook · wersja aplikacji v2.0 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
+<footer>Pilot Logbook · wersja aplikacji v2.1 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
 </main>
 <script>
 const KEY='pilot-logbook-flights-v1';
@@ -166,7 +166,7 @@ function renderYearStats(){
  putStats('statDest',groupStats(list,f=>f.arrival).map(x=>[x.key,x.count,pct(x.count),fmt(x.block)]),4);
  const funcs=[['PIC',f=>f.pic],['PICUS',f=>f.picus!=null?f.picus:((f.captain&&!/^SELF$/i.test(f.captain))?f.block:0)],['Co-pilot',f=>f.sic],['Dual',f=>f.dual],['Instructor',f=>f.instructor],['IFR',f=>f.ifr],['Noc',f=>f.night],['SBH',f=>f.sbh]];
  putStats('statPIC',funcs.map(([name,fn])=>[name,fmt(list.reduce((n,f)=>n+(+fn(f)||0),0))]),2);
- putStats('statCaptains',groupStats(list,f=>f.captain && !/^SELF$/i.test(f.captain)?f.captain:'').map(x=>[x.key,x.count,fmt(x.block)]),3);
+ putStats('statCaptains',groupStats(list,f=>(f.captain||'').trim()||'Nie podano').map(x=>[x.key,x.count,fmt(x.block)]),3);
 }
 $('statsYear').addEventListener('change',renderYearStats);
 function reportTab(name){document.querySelectorAll('.report-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.report===name));document.querySelectorAll('.report-pane').forEach(p=>p.classList.toggle('active',p.id==='report-'+name))}
@@ -174,7 +174,7 @@ document.querySelectorAll('.report-tabs button').forEach(b=>b.addEventListener('
 function putReport(id,rows,cols){const el=$(id);if(!el)return;el.innerHTML=rows.length?rows.map(r=>'<tr>'+r.map(v=>'<td>'+v+'</td>').join('')+'</tr>').join(''):`<tr><td colspan="${cols}">Brak danych</td></tr>`}
 function reportGroup(keyFn){return groupStats(flights,keyFn)}
 function renderReports(){
- const total=flights.length, totalTime=sum(flights), captains=groupStats(flights.filter(f=>f.captain&&f.captain.trim()&&!/^SELF$/i.test(f.captain.trim())),f=>f.captain.trim()), airfields=new Map(), routes=[], regs=reportGroup(f=>f.registration||'Nie podano'), types=reportGroup(f=>f.aircraftType||'Nie podano');
+ const total=flights.length, totalTime=sum(flights), captains=groupStats(flights,f=>(f.captain||'').trim()||'Nie podano'), airfields=new Map(), routes=[], regs=reportGroup(f=>f.registration||'Nie podano'), types=reportGroup(f=>f.aircraftType||'Nie podano');
  const roles=[['Całkowity nalot',f=>f.block],['PIC',f=>f.pic],['PICUS',f=>f.picus],['SIC / Co-pilot',f=>f.sic],['Dual',f=>f.dual],['Instructor',f=>f.instructor],['Noc',f=>f.night],['IFR',f=>f.ifr],['SBH',f=>f.sbh]];
  $('timeCards').innerHTML=[['Wszystkie loty',String(total)],['Nalot całkowity',fmt(totalTime)],['PICUS',fmt(flights.reduce((n,f)=>n+(+f.picus||0),0))],['Dowódcy',String(captains.length)]].map(([l,v])=>`<div class="card"><small>${esc(l)}</small><div class="value">${esc(v)}</div></div>`).join('');
  putReport('reportTimeTable',roles.map(([label,fn])=>{const items=flights.filter(f=>(+fn(f)||0)>0);return [`${esc(label)}`,items.length,fmt(items.reduce((n,f)=>n+(+fn(f)||0),0))]}),3);
@@ -308,8 +308,8 @@ function enrichCaptainData(data){
   f.captain=captain;
   f.pic=val('pic'); f.sic=val('sic'); f.dual=val('dual'); f.instructor=val('instructor');
   f.ifr=val('ifr'); f.night=val('night'); f.sbh=val('sbh');
-  f.landingsDay=Number(r[m.landDay])||0; f.landingsNight=Number(r[m.landNight])||0; f.landings=f.landingsDay+f.landingsNight;
-  f.picus=(captain && !/^SELF$/i.test(captain))?(Number(f.block)||0):0;
+  if(!Number.isFinite(Number(f.landingsDay))) f.landingsDay=0; if(!Number.isFinite(Number(f.landingsNight))) f.landingsNight=0; f.landings=Number(f.landingsDay||0)+Number(f.landingsNight||0);
+  f.picus=(captain && !/^SELF$/i.test(captain) && Number(f.pic)>0)?Number(f.pic):0;
  }
 }
 function importFlightsFromWorkbook(data){
@@ -328,16 +328,16 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='9';
+  const importVersion='10';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=9',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=10',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
   // Rebuild workbook-derived records on import-version changes; repair previously imported rows whose captain and role times were missing. Keep manually added flights and valid manually corrected positive times.
   const oldById=new Map(flights.map(f=>[f.id,f]));
   enrichCaptainData(workbookData);
-  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};const keep=(k)=>Number(old[k])>0?old[k]:f[k];return {...old,...f,id:f.id||old.id||uid(),captain:f.captain||old.captain||'',picus:(f.captain&&!/^SELF$/i.test(f.captain.trim()))?(Number(f.block)||0):0,pic:keep('pic'),sic:keep('sic'),dual:keep('dual'),instructor:keep('instructor'),ifr:keep('ifr'),night:keep('night'),sbh:keep('sbh'),landings:Number(f.landings)||Number(old.landings)||0,landingsDay:Number(f.landingsDay)||Number(old.landingsDay)||0,landingsNight:Number(f.landingsNight)||Number(old.landingsNight)||0}});
+  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};const keep=(k)=>Number(old[k])>0?old[k]:f[k];return {...old,...f,id:f.id||old.id||uid(),captain:f.captain||old.captain||'',picus:(f.captain&&!/^SELF$/i.test(f.captain.trim())&&Number(f.pic)>0)?Number(f.pic):0,pic:keep('pic'),sic:keep('sic'),dual:keep('dual'),instructor:keep('instructor'),ifr:keep('ifr'),night:keep('night'),sbh:keep('sbh'),landings:Number(f.landings)||Number(old.landings)||0,landingsDay:Number(f.landingsDay)||Number(old.landingsDay)||0,landingsNight:Number(f.landingsNight)||Number(old.landingsNight)||0}});
   const sourceIds=new Set(refreshed.map(f=>f.id));
   const manual=flights.filter(f=>!f.sourceSheet&&!sourceIds.has(f.id));
   flights=[...refreshed,...manual];
