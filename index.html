@@ -41,14 +41,8 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
-<section id="dashboard" class="view active"><h2>Ostatnie loty</h2><p class="sub">Szybki podgląd ostatnich wpisów. Statystyki i limity znajdziesz w zakładce Raporty.</p><div class="panel" id="recent"></div></section>
-<section id="reports" class="view">
-<h2>Raporty</h2>
-<p class="sub">Zestawienia liczone z zapisanych lotów. Wybierz kategorię, aby analizować nalot, lotniska, samoloty i dowódców.</p>
-<div class="report-tabs" role="tablist" aria-label="Kategorie raportów">
-<button class="active" data-report="time">Czas</button><button data-report="airfields">Lotniska</button><button data-report="map">Trasy</button><button data-report="aircraft">Rejestracje</button><button data-report="types">Typy samolotów</button><button data-report="people">Dowódcy</button><button data-report="approaches">Podejścia</button>
-</div>
-<div class="report-pane active" id="report-time">
+<section id="dashboard" class="view active">
+<h2>Podsumowanie</h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -60,6 +54,15 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Wskaźniki czasu lotu</h2>
 <div class="panel" id="limit28"></div><div style="height:8px"></div><div class="panel" id="limit365"></div>
 <p class="sub">To są wskaźniki czasu lotu, nie pełna ocena zgodności z EASA FTL. Nie obejmują m.in. FDP, duty, odpoczynku, standby, aklimatyzacji ani zatwierdzonego schematu operatora.</p>
+<h2>Ostatnie loty</h2><div class="panel" id="recent"></div>
+</section>
+<section id="reports" class="view">
+<h2>Raporty</h2>
+<p class="sub">Zestawienia liczone z zapisanych lotów. Wybierz kategorię, aby analizować nalot, lotniska, samoloty i dowódców.</p>
+<div class="report-tabs" role="tablist" aria-label="Kategorie raportów">
+<button class="active" data-report="time">Czas</button><button data-report="airfields">Lotniska</button><button data-report="map">Trasy</button><button data-report="aircraft">Rejestracje</button><button data-report="types">Typy samolotów</button><button data-report="people">Dowódcy</button><button data-report="approaches">Podejścia</button>
+</div>
+<div class="report-pane active" id="report-time">
 <h2>Statystyki roczne</h2>
 <p class="sub">Wybierz rok. Zestawienia są liczone bezpośrednio z zapisanych lotów, a nie z arkusza „Statistic”.</p>
 <div class="panel"><label for="statsYear">Rok statystyk<select id="statsYear"></select></label><p class="sub" id="statsYearSummary"></p></div>
