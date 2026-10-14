@@ -28,7 +28,7 @@ button,.button{cursor:pointer}.primary{background:var(--accent);color:#07111c;bo
 input,select,textarea{width:100%;background:#0b1726;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:11px;font:inherit;margin-top:5px}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 0}
 form .row label{min-width:0}textarea{min-height:70px}.role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.checklabel{display:flex;align-items:center;gap:9px;background:#0b1726;border:1px solid var(--line);padding:10px;border-radius:10px;margin:0;color:var(--text);font-size:14px}.checklabel input{width:20px;height:20px;margin:0;accent-color:var(--accent)}
-.flight{display:flex;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.flight:last-child{border-bottom:0}.route{font-weight:750}.meta{color:var(--muted);font-size:12px;margin-top:5px}.time{font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums}
+.flight{display:flex;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.recentFlight{cursor:pointer;border-radius:10px;padding-left:8px;padding-right:8px}.recentFlight:active,.recentFlight:focus{background:var(--panel2);outline:1px solid var(--accent)}.flight:last-child{border-bottom:0}.route{font-weight:750}.meta{color:var(--muted);font-size:12px;margin-top:5px}.time{font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums}
 .pill{display:inline-block;padding:5px 8px;border-radius:999px;background:#26394d;color:var(--muted);font-size:12px;margin:3px 4px 0 0}.warning{border-color:#8b4b4b;background:#301e28}.warning strong{color:var(--danger)}.ok{color:var(--ok)}.empty{color:var(--muted);text-align:center;padding:28px 12px}
 hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!important}
 #sheetTable{border-collapse:collapse;font-size:12px;white-space:nowrap;min-width:100%}#sheetTable th,#sheetTable td{border:1px solid var(--line);padding:7px 9px;text-align:left;max-width:260px;overflow:hidden;text-overflow:ellipsis}#sheetTable th{background:#20344b;position:sticky;top:0;z-index:1}#sheetTable td{background:#0b1726}#sheetTable .rownum{background:#20344b;color:var(--muted);position:sticky;left:0;z-index:1}#sheetTable th:first-child{left:0;z-index:2}
@@ -36,24 +36,25 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 </style>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v1.8</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v1.9</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v1.8</span></h2>
+<h2>Podsumowanie <span class="version">v1.9</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
+<div class="card"><small>Ostatnie 7 dni</small><div class="value" id="last7">0:00</div></div>
 <div class="card"><small>Ostatnie 28 dni</small><div class="value" id="last28">0:00</div></div>
 <div class="card"><small>Ostatnie 365 dni</small><div class="value" id="last365">0:00</div></div>
 <div class="card"><small>Lądowania</small><div class="value" id="landings">0</div></div>
 <div class="card"><small>Nalot w tym roku</small><div class="value" id="thisYear">0:00</div></div>
 </div>
 <h2>Wskaźniki czasu lotu</h2>
-<div class="panel" id="limit28"></div><div style="height:8px"></div><div class="panel" id="limit365"></div>
-<p class="sub">To są wskaźniki czasu lotu, nie pełna ocena zgodności z EASA FTL. Nie obejmują m.in. FDP, duty, odpoczynku, standby, aklimatyzacji ani zatwierdzonego schematu operatora.</p>
+<div class="panel" id="limit7"></div><div style="height:8px"></div><div class="panel" id="limit28"></div><div style="height:8px"></div><div class="panel" id="limitYear"></div><div style="height:8px"></div><div class="panel" id="limit365"></div>
+<p class="sub">28 dni: próg 100 h; rok kalendarzowy: 900 h; 12 kolejnych miesięcy: 1 000 h. 7 dni pokazuje sumę nalotu informacyjnie, bez limitu czasu lotu. To nie jest pełna kontrola FTL — limity duty, FDP i odpoczynku wymagają osobnych danych oraz zasad operatora.</p>
 <h2>Ostatnie loty</h2><div class="panel" id="recent"></div>
 </section>
 <section id="reports" class="view">
@@ -64,7 +65,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 </div>
 <div class="report-pane active" id="report-time">
 <h2>Statystyki roczne</h2>
-<p class="sub">Wybierz rok. Zestawienia są liczone bezpośrednio z zapisanych lotów, a nie z arkusza „Statistic”.</p>
+<p class="sub">Wybierz rok albo „Całkowite”. Zestawienia są liczone bezpośrednio z zapisanych lotów, a nie z arkusza „Statistic”.</p>
 <div class="panel"><label for="statsYear">Rok statystyk<select id="statsYear"></select></label><p class="sub" id="statsYearSummary"></p></div>
 <div class="panel"><h3>Podsumowanie miesięczne</h3><div class="tablewrap"><table class="statTable"><thead><tr><th>Miesiąc</th><th>Sektory</th><th>Block time</th><th>SBH</th><th>PIC</th><th>Co-pilot</th><th>IFR</th><th>Noc</th></tr></thead><tbody id="statMonths"></tbody></table></div></div>
 <div class="panel"><h3>Typ samolotu</h3><div class="tablewrap"><table class="statTable"><thead><tr><th>Aircraft</th><th>Sectors</th><th>%</th><th>Total Time</th></tr></thead><tbody id="statAircraft"></tbody></table></div></div>
@@ -82,7 +83,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 </section>
 <section id="history" class="view">
 <div class="row"><h2 style="flex:2">Historia lotów</h2><button class="secondary" id="historyExport">Eksport CSV</button></div>
-<div class="panel"><label>Szukaj (trasa, numer lotu, rejestracja)<input id="search" placeholder="np. EPPO, FR1234, SP-ABC"></label></div>
+<div class="panel"><label>Szukaj (trasa, numer lotu, rejestracja, typ samolotu lub dowódca)<input id="search" placeholder="np. EPPO, FR1234, SP-ABC, Kowalski"></label></div>
 <div class="panel" id="flightList" style="margin-top:10px"></div>
 </section>
 <section id="add" class="view">
@@ -123,7 +124,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>Pilot Logbook · wersja aplikacji v1.8 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
+<footer>Pilot Logbook · wersja aplikacji v1.9 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
 </main>
 <script>
 const KEY='pilot-logbook-flights-v1';
@@ -142,6 +143,7 @@ function dateObj(s){return new Date(s+'T12:00:00')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function sum(list){return list.reduce((a,f)=>a+(+f.block||0),0)}
 function startDays(n){let d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(n-1));return d}
+function startOfYear(){const d=new Date();return new Date(d.getFullYear(),0,1)}
 function within(f,d){return dateObj(f.date)>=d && dateObj(f.date)<=new Date()}
 function sorted(){return [...flights].sort((a,b)=>b.date.localeCompare(a.date))}
 function flightHTML(f){return `<div class="flight"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'bez numeru')} · ${esc(f.aircraftType||'')} ${esc(f.registration||'')}</div><div class="meta">Dowódca: ${esc(f.captain||'Nie podano')} · PICUS ${fmt(f.picus||0)}</div><div class="meta">PIC ${fmt(f.pic)} · SIC ${fmt(f.sic)} · IFR ${fmt(f.ifr)} · Noc ${fmt(f.night)}</div><div class="row" style="margin-top:8px"><button class="secondary" onclick="editFlight('${f.id}')">Edytuj</button><button class="secondary danger" onclick="deleteFlight('${f.id}')">Usuń</button></div></div><div class="time">${fmt(f.block)}</div></div>`}
@@ -152,10 +154,10 @@ function groupStats(list,keyFn){const m=new Map();for(const f of list){const k=k
 function renderYearStats(){
  const yearEl=$('statsYear');if(!yearEl)return;
  const years=[...new Set(flights.map(f=>String(f.date||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort();
- const current=yearEl.value;const preferred=years.includes(String(new Date().getFullYear()))?String(new Date().getFullYear()):(years[years.length-1]||String(new Date().getFullYear()));
- if([...yearEl.options].map(o=>o.value).join('|')!==years.join('|')){yearEl.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');yearEl.value=years.includes(current)?current:preferred}
- const year=yearEl.value||preferred;const list=flights.filter(f=>String(f.date||'').startsWith(year));const total=list.length;
- $('statsYearSummary').textContent=`Rok ${year}: ${total} sektorów · block time ${fmt(sum(list))} · lądowania ${list.reduce((a,f)=>a+(+f.landings||0),0)}.`;
+ const options=['all',...years];const current=yearEl.value;const preferred=years.includes(String(new Date().getFullYear()))?String(new Date().getFullYear()):(years[years.length-1]||String(new Date().getFullYear()));
+ if([...yearEl.options].map(o=>o.value).join('|')!==options.join('|')){yearEl.innerHTML='<option value="all">Całkowite</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');yearEl.value=options.includes(current)?current:preferred}
+ const selected=yearEl.value||preferred;const list=selected==='all'?flights:flights.filter(f=>String(f.date||'').startsWith(selected));const total=list.length;
+ $('statsYearSummary').textContent=`${selected==='all'?'Całkowite':`Rok ${selected}`}: ${total} sektorów · block time ${fmt(sum(list))} · lądowania ${list.reduce((a,f)=>a+(+f.landings||0),0)}.`;
  const monthly=MONTHS.map((name,i)=>{const a=list.filter(f=>Number(String(f.date||'').slice(5,7))===i+1);return [name,a.length,fmt(sum(a)),fmt(a.reduce((n,f)=>n+(+f.sbh||0),0)),fmt(a.reduce((n,f)=>n+(+f.pic||0),0)),fmt(a.reduce((n,f)=>n+(+f.sic||0),0)),fmt(a.reduce((n,f)=>n+(+f.ifr||0),0)),fmt(a.reduce((n,f)=>n+(+f.night||0),0))]});
  putStats('statMonths',monthly,8);
  const pct=(n)=>total?(100*n/total).toFixed(1)+'%':'0.0%';
@@ -190,13 +192,13 @@ function renderReports(){
 }
 function render(){
 refreshAirportSuggestions();renderYearStats();renderReports();
-let now=new Date(), yr=String(now.getFullYear());let m28=sum(flights.filter(f=>within(f,startDays(28)))),m365=sum(flights.filter(f=>within(f,startDays(365))));
-$('total').textContent=fmt(sum(flights));$('sectors').textContent=flights.length;$('last28').textContent=fmt(m28);$('last365').textContent=fmt(m365);$('landings').textContent=flights.reduce((a,f)=>a+(+f.landings||0),0);$('thisYear').textContent=fmt(sum(flights.filter(f=>f.date.startsWith(yr))));
-$('limit28').innerHTML=limitHTML('Czas lotu · 28 dni',m28,6000);$('limit365').innerHTML=limitHTML('Czas lotu · 365 dni',m365,54000);
-let recent=sorted().slice(0,4);$('recent').innerHTML=recent.length?recent.map(f=>`<div class="flight"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'')}</div></div><div class="time">${fmt(f.block)}</div></div>`).join(''):'<div class="empty">Brak lotów. Dodaj pierwszy wpis.</div>';
+let now=new Date(), yr=String(now.getFullYear());let m7=sum(flights.filter(f=>within(f,startDays(7)))),m28=sum(flights.filter(f=>within(f,startDays(28)))),m365=sum(flights.filter(f=>within(f,startDays(365)))),mYear=sum(flights.filter(f=>String(f.date||'').startsWith(yr)));
+$('total').textContent=fmt(sum(flights));$('sectors').textContent=flights.length;$('last7').textContent=fmt(m7);$('last28').textContent=fmt(m28);$('last365').textContent=fmt(m365);$('landings').textContent=flights.reduce((a,f)=>a+(+f.landings||0),0);$('thisYear').textContent=fmt(sum(flights.filter(f=>f.date.startsWith(yr))));
+$('limit7').innerHTML=`<div style="border-radius:12px;padding:2px"><strong>Czas lotu · 7 dni</strong><div style="font-size:22px;font-weight:750;margin-top:6px">${fmt(m7)}</div><span class="sub">Suma czasu lotu z ostatnich 7 dni. Wskaźnik informacyjny — nie jest limitem duty ani FDP.</span></div>`;$('limit28').innerHTML=limitHTML('Czas lotu · 28 dni',m28,6000);$('limitYear').innerHTML=limitHTML('Czas lotu · rok kalendarzowy',mYear,54000);$('limit365').innerHTML=limitHTML('Czas lotu · 365 dni',m365,60000);
+let recent=sorted().slice(0,4);$('recent').innerHTML=recent.length?recent.map(f=>`<div class="flight recentFlight" role="button" tabindex="0" onclick="editFlight('${f.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editFlight('${f.id}')}"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'')}</div><div class="meta">Dotknij, aby otworzyć lot</div></div><div class="time">${fmt(f.block)}</div></div>`).join(''):'<div class="empty">Brak lotów. Dodaj pierwszy wpis.</div>';
 renderHistory()
 }
-function renderHistory(){let q=($('search')?.value||'').toLowerCase();let arr=sorted().filter(f=>[f.departure,f.arrival,f.flightNumber,f.registration,f.aircraftType].join(' ').toLowerCase().includes(q));$('flightList').innerHTML=arr.length?arr.map(flightHTML).join(''):'<div class="empty">Nie znaleziono lotów.</div>'}
+function renderHistory(){let q=($('search')?.value||'').toLowerCase();let arr=sorted().filter(f=>[f.departure,f.arrival,f.flightNumber,f.registration,f.aircraftType,f.captain].join(' ').toLowerCase().includes(q));$('flightList').innerHTML=arr.length?arr.map(flightHTML).join(''):'<div class="empty">Nie znaleziono lotów.</div>'}
 function clearForm(){ $('flightForm').reset();$('editId').value='';$('date').value=new Date().toISOString().slice(0,10);$('aircraftType').value='Boeing 737-800';$('captain').value='';$('picus').value='00:00';$('pic').value='00:00';$('sic').value='00:00';$('dual').value='00:00';$('instructor').value='00:00';$('ifr').value='00:00';$('night').value='00:00';$('block').value='';$('landingsInput').value='1';$('landingDay').checked=false;$('landingNight').checked=false;$('takeoffDay').checked=false;$('takeoffNight').checked=false;$('formTitle').textContent='Dodaj lot';$('cancelEdit').classList.add('hidden');syncAutoFields()}
 function editFlight(id){let f=flights.find(x=>x.id===id);if(!f)return;switchTab('add');$('editId').value=id;if(![...$('aircraftType').options].some(o=>o.value===f.aircraftType)){const opt=document.createElement('option');opt.value=f.aircraftType||'Nie podano';opt.textContent=f.aircraftType||'Nie podano';$('aircraftType').appendChild(opt)}for(let [k,v] of Object.entries({date:f.date,flightNumber:f.flightNumber,aircraftType:f.aircraftType,registration:f.registration,captain:f.captain||'',picus:fmt(f.picus||0),departure:f.departure,arrival:f.arrival,depTime:f.depTime||'',arrTime:f.arrTime||'',block:fmt(f.block),pic:fmt(f.pic),sic:fmt(f.sic),dual:fmt(f.dual||0),instructor:fmt(f.instructor||0),ifr:fmt(f.ifr),night:fmt(f.night),landingsInput:f.landings,notes:f.notes}))$(k).value=v;$('landingDay').checked=(+f.landingsDay||0)>0;$('landingNight').checked=(+f.landingsNight||0)>0;$('takeoffDay').checked=!!f.takeoffDay;$('takeoffNight').checked=!!f.takeoffNight;$('rolePIC').checked=!!f.rolePIC;$('roleCOPILOT').checked=!!f.roleCOPILOT;$('roleDUAL').checked=!!f.roleDUAL;$('roleINSTRUCTOR').checked=!!f.roleINSTRUCTOR;$('formTitle').textContent='Edytuj lot';$('cancelEdit').classList.remove('hidden');window.scrollTo(0,0)}
 function deleteFlight(id){if(!confirm('Usunąć ten wpis?'))return;flights=flights.filter(f=>f.id!==id);save()}
