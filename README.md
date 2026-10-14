@@ -10,3 +10,8 @@ Zmiany w tej wersji:
 Czas nocny: nie naliczam go automatycznie z samego off-block/on-block, bo nie są to dokładne czasy take-off/landing ani pozycja samolotu w trakcie lotu. Proponowany mechanizm opisano w odpowiedzi; obecnie pole Night pozostaje ręczne.
 
 Przed podmianą plików wykonaj eksport JSON. W GitHub Pages zastąp index.html i sw.js; pozostaw workbook-data.json, manifest.json i ikony.
+
+
+## Czas nocny — kalkulator lokalny
+
+Formularz lotu zawiera przycisk „Wylicz czas nocny (szacunek)”. Kalkulator działa offline i wykorzystuje lokalną tabelę współrzędnych lotnisk oraz obliczenie wysokości Słońca; granicą nocy jest zmierzch cywilny (Słońce na wysokości -6°). Trasę przybliża odcinek wielkiego koła między lotniskiem wylotu i przylotu, a czas opiera na godzinach off-block/on-block UTC. To tylko szacunek: block time obejmuje kołowanie, a rzeczywiste czasy startu/lądowania i przebieg trasy mogą się różnić. Użytkownik może ręcznie poprawić pole „Noc”. Jeśli kodu ICAO nie ma w lokalnej tabeli, kalkulator poprosi o ręczne wpisanie wartości.
