@@ -159,14 +159,20 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const already=localStorage.getItem(IMPORT_KEY);if(already){return;}
-  const res=await fetch('./workbook-data.json',{cache:'no-store'});if(!res.ok)throw Error('Nie można odczytać dołączonego pliku Excel.');
-  workbookData=await res.json();localStorage.setItem(WORKBOOK_KEY,JSON.stringify(workbookData));
-  const imported=importFlightsFromWorkbook(workbookData);
-  if(imported.length){flights.push(...imported);localStorage.setItem(KEY,JSON.stringify(flights));}
-  localStorage.setItem(IMPORT_KEY,JSON.stringify({at:new Date().toISOString(),count:imported.length}));
+  const importVersion='3';
+  if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
+  const res=await fetch('./workbook-data.json?import=3',{cache:'no-store'});
+  if(!res.ok)throw Error('Nie można odczytać danych Excela.');
+  workbookData=await res.json();
+  if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
+  // Replace the previous incomplete import, rather than appending and double-counting it.
+  flights=workbookData.flights.map(f=>({...f,id:f.id||uid()}));
+  localStorage.setItem(KEY,JSON.stringify(flights));
+  localStorage.setItem(IMPORT_KEY,importVersion);
+  localStorage.setItem(WORKBOOK_KEY,JSON.stringify(workbookData));
   render();
- }catch(err){console.error('Excel import:',err)}
+  if($('dataStatus'))$('dataStatus').textContent=`Zaimportowano ${flights.length} lotów z arkuszy rocznych.`;
+ }catch(err){console.error('Excel import:',err);if($('dataStatus'))$('dataStatus').textContent='Błąd importu: '+err.message}
 }
 clearForm();render();initWorkbook();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
