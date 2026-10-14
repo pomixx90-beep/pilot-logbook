@@ -1,7 +1,8 @@
-# Pilot Logbook v2.2.13 — PICUS/SIC fix
+Pilot Logbook v2.2.14 — poprawka funkcji PIC/PICUS/SIC
 
-Ta wersja rozdziela PICUS od SIC/Co-pilot. Dla importowanych lotów Verified Flights, gdzie Crew Code pasuje do TakeOffPilot, a dowódca jest inny niż SELF, zapisuje PICUS równy block time, ale SIC = 0 i Co-pilot pozostaje odznaczony.
+- PICUS ma osobny checkbox w sekcji „Funkcja pilota”.
+- Import Verified Flights zaznacza PICUS, gdy TakeOffPilot odpowiada ustawionemu Crew Code, a dowódca nie jest SELF.
+- PICUS jest przechowywany osobno od PIC i Co-pilot/SIC; SIC pozostaje 00:00, jeśli nie zaznaczono Co-pilot/SIC.
+- Numer wersji widoczny w aplikacji: v2.2.14.
 
-Przy starcie aplikacji poprawia również istniejące wpisy Imported from Verified Flights z PICUS > 0: zeruje SIC i odznacza Co-pilot, bez modyfikowania innych lotów.
-
-Wdrożenie: zrób kopię JSON, następnie zastąp index.html i sw.js w głównym katalogu repozytorium GitHub i zatwierdź zmiany.
+Wdrożenie: zastąp index.html i sw.js w głównym katalogu repozytorium, zatwierdź zmiany i otwórz aplikację ponownie. Zrób kopię JSON przed wdrożeniem.
