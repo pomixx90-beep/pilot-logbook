@@ -36,13 +36,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 </style>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v1.9</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.0</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v1.9</span></h2>
+<h2>Podsumowanie <span class="version">v2.0</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -124,7 +124,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>Pilot Logbook · wersja aplikacji v1.9 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
+<footer>Pilot Logbook · wersja aplikacji v2.0 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
 </main>
 <script>
 const KEY='pilot-logbook-flights-v1';
@@ -269,6 +269,8 @@ function excelColumnMap(rows){
    if(v==='INSTRUCTOR') map.instructor=ci;
   }
  }
+ // LANDINGS is a merged parent header; its DAY/NIGHT subcolumns are adjacent.
+ if(map.landDay!=null) map.landNight=map.landDay+1;
  return map;
 }
 function excelRowForFlight(f, rows){
@@ -301,7 +303,7 @@ function enrichCaptainData(data){
   const rows=sheets.get(f.sourceSheet); if(!rows) continue;
   const r=excelRowForFlight(f,rows); if(!r) continue;
   const m=excelColumnMap(rows);
-  const val=k=>m[k]==null?0:excelMinutes(r[m[k]]);
+  const val=k=>{const parsed=m[k]==null?0:excelMinutes(r[m[k]]);return parsed>0?parsed:(Number(f[k])||0)};
   const captain=m.captain==null?'':String(r[m.captain]||'').trim();
   f.captain=captain;
   f.pic=val('pic'); f.sic=val('sic'); f.dual=val('dual'); f.instructor=val('instructor');
@@ -326,16 +328,16 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='8';
+  const importVersion='9';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=8',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=9',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
-  // Refresh workbook-derived records with captain/PICUS while retaining manually added flights.
+  // Rebuild workbook-derived records on import-version changes; repair previously imported rows whose captain and role times were missing. Keep manually added flights and valid manually corrected positive times.
   const oldById=new Map(flights.map(f=>[f.id,f]));
   enrichCaptainData(workbookData);
-  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};const keep=(k)=>Number(old[k])>0?old[k]:f[k];return {...old,...f,id:f.id||old.id||uid(),captain:f.captain||'',picus:f.picus||0,pic:keep('pic'),sic:keep('sic'),dual:keep('dual'),instructor:keep('instructor'),ifr:keep('ifr'),night:keep('night'),sbh:keep('sbh'),landings:Number(old.landings)>0?old.landings:f.landings,landingsDay:Number(old.landingsDay)>0?old.landingsDay:f.landingsDay,landingsNight:Number(old.landingsNight)>0?old.landingsNight:f.landingsNight}});
+  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};const keep=(k)=>Number(old[k])>0?old[k]:f[k];return {...old,...f,id:f.id||old.id||uid(),captain:f.captain||old.captain||'',picus:(f.captain&&!/^SELF$/i.test(f.captain.trim()))?(Number(f.block)||0):0,pic:keep('pic'),sic:keep('sic'),dual:keep('dual'),instructor:keep('instructor'),ifr:keep('ifr'),night:keep('night'),sbh:keep('sbh'),landings:Number(f.landings)||Number(old.landings)||0,landingsDay:Number(f.landingsDay)||Number(old.landingsDay)||0,landingsNight:Number(f.landingsNight)||Number(old.landingsNight)||0}});
   const sourceIds=new Set(refreshed.map(f=>f.id));
   const manual=flights.filter(f=>!f.sourceSheet&&!sourceIds.has(f.id));
   flights=[...refreshed,...manual];
