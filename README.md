@@ -1,10 +1,7 @@
-# Pilot Logbook v2.2.6 — poprawka importu Verified Flights
+# Pilot Logbook v2.2.7 — PICUS role fix
 
-Ta wersja:
-- zmienia widoczny numer wersji na v2.2.6;
-- rozpoznaje nagłówki Excela niezależnie od spacji, podkreśleń i wielkości liter;
-- pobiera godziny z kolumn Off Block / On Block i konwertuje je do HH:MM;
-- zachowuje funkcję FO jako Co-pilot (SIC); pilotowanie startu lub lądowania nie oznacza funkcji PIC;
-- zapisuje informacje Pilot Flying, Takeoff pilot i Landing pilot w uwagach.
+Ta poprawka ustawia importowane odcinki z niepustym dowódcą innym niż SELF jako PICUS równy block time, ale nie zaznacza automatycznie PIC ani Co-pilot/SIC. To odzwierciedla przypadek, gdy użytkownik był PF jako PICUS, a formalnym dowódcą był inny pilot.
 
-Przed wdrożeniem wyeksportuj kopię JSON. Wgraj `index.html` i `sw.js` do głównego katalogu repozytorium, zastępując istniejące pliki, i wykonaj Commit changes.
+Przed aktualizacją wyeksportuj kopię JSON. Wgraj `index.html` i `sw.js` do głównego katalogu repozytorium GitHub, zastępując stare pliki, następnie Commit changes. Wersja aplikacji: v2.2.7.
+
+Poprawka dotyczy nowych importów; nie zmienia automatycznie wpisów już zapisanych.
