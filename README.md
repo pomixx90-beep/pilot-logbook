@@ -1,14 +1,12 @@
-# Pilot Logbook — Reports update
+# Pilot Logbook — raporty i lądowania
 
-This package adds a Reports section inspired by the reference app:
-- Time summary and time by role/condition
-- Airfields (departures, arrivals, operations)
-- Routes with links to Google Maps
-- Aircraft registrations and aircraft types
-- People / captains with sectors, block time, and share of total time
-- Approaches placeholder, because the current source data does not contain approach type/count fields
+Zmiany w tej wersji:
+- podsumowanie Dashboardu przeniesione do Raporty → Czas; Dashboard pokazuje ostatnie loty;
+- trasy w obie strony łączone w jeden wiersz z osobnymi sektorami i czasami dla każdego kierunku;
+- typ samolotu w ręcznym formularzu to lista Boeing 737-700 / 737-800 / 737-8200;
+- lądowania dzień/noc wybierane checkboxami i zapisywane osobno; importowane wartości dzienne/nocne są zachowywane, gdy są dostępne;
+- cache service workera zwiększony do nowej wersji.
 
-It also increments the workbook import version to refresh workbook-derived captain and time fields, and increments the service-worker cache version.
+Czas nocny: nie naliczam go automatycznie z samego off-block/on-block, bo nie są to dokładne czasy take-off/landing ani pozycja samolotu w trakcie lotu. Proponowany mechanizm opisano w odpowiedzi; obecnie pole Night pozostaje ręczne.
 
-## Deploy
-Replace `index.html` and `sw.js` in the root of the GitHub Pages repository. Keep `workbook-data.json`, `manifest.json`, and the icons in place. Export a JSON backup before deploying. The app remains local-only; this package does not add cloud sync.
+Przed podmianą plików wykonaj eksport JSON. W GitHub Pages zastąp index.html i sw.js; pozostaw workbook-data.json, manifest.json i ikony.
