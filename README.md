@@ -1,5 +1,5 @@
-Pilot Logbook v2.2.15 — poprawka funkcji pilota
+# Pilot Logbook v2.2.17 — automatyczne wyliczanie czasu nocnego
 
-Zmiana: jeśli TakeOffPilot pasuje do ustawionego Crew Code, import ustawia PIC na block time i nie ustawia PICUS ani SIC. LandingPilot nie wpływa na rozpoznanie lotu.
+Zmiana: przy zapisywaniu lotu aplikacja automatycznie próbuje wyliczyć czas nocny na podstawie daty, lotnisk i godzin UTC, bez konieczności klikania przycisku „Wylicz czas nocny”. Jeśli brakuje danych lub współrzędnych, pole pozostaje bez automatycznego przeliczenia i można użyć przycisku albo wpisać wartość ręcznie.
 
-Wdrożenie: wykonaj kopię JSON, a następnie zastąp index.html i sw.js w katalogu głównym repozytorium GitHub Pages. Zatwierdź zmiany i sprawdź wersję v2.2.15.
+Wgraj do katalogu głównego repozytorium pliki `index.html` i `sw.js`. Zrób kopię JSON przed aktualizacją.
