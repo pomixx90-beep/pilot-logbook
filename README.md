@@ -1,5 +1,8 @@
-# Pilot Logbook v2.2.24
+Pilot Logbook v2.2.26
 
-Poprawka importu historycznego Logbook.xlsx: dynamiczne mapowanie kolumn na podstawie nagłówków wielowierszowych, poprawne odczytywanie czasu wylotu/przylotu, PIC, Co-pilot/SIC, IFR, nocy i lądowań; odświeżenie rekordów pochodzących z arkuszy rocznych przy zmianie wersji importu. Zachowuje ręcznie dodane wpisy.
+Zmiany:
+- Dashboard ma tabelę podsumowania w stylu logbooka: Block/Total Time, SBH, PIC, PICUS, SIC, Dual, Instructor, IFR, NIGHT, starty i lądowania dzień/noc.
+- Pokazuje też liczbę lotów pochodzących z arkuszy Excela i pozostałych źródeł, aby wyjaśnić możliwe różnice względem sumy Excela.
+- Podniesiono wersję aplikacji i wersję importu Excela.
 
-Przed wdrożeniem wyeksportuj kopię JSON. Wgraj `index.html` i `sw.js` do katalogu głównego repozytorium GitHub, zastępując istniejące pliki, a następnie Commit changes. Po publikacji sprawdź numer v2.2.24.
+Przed wdrożeniem wyeksportuj kopię JSON. W repozytorium zastąp index.html i sw.js, zatwierdź zmiany i sprawdź widoczną wersję v2.2.26.
