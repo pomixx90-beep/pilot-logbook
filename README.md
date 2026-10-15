@@ -1,9 +1,13 @@
-POMIWO logbook v2.2.50 — poprawka aktualizacji trasy z Verified Flights
+POMIWO logbook v2.2.51 — poprawka testowa dla 11.10.2026
 
-Przy imporcie aplikacja już odczytuje DepartureICAO i ArrivalICAO w pierwszej kolejności. Błąd polegał na tym, że gdy lot już istniał (dopasowanie po ImportKey), aplikacja aktualizowała m.in. block time i numer lotu, ale nie aktualizowała zapisanej trasy. Dlatego stary wpis mógł pozostać jako EPPO → DBV mimo że arkusz ma EPPO → LDDU.
+Co poprawiono:
+- usunięto loty z 2026-10-11 z dołączonego workbook-data.json;
+- podbito wersję importu, żeby aplikacja odświeżyła rekordy z pliku źródłowego;
+- przy starcie usuwa z lokalnej bazy i kopii IndexedDB wyłącznie loty z 2026-10-11;
+- import Verified Flights pomija tę datę;
+- synchronizacja usuwa z karty LogbookSync rekordy chmurowe z tą datą, żeby nie wracały na urządzenie;
+- poprawiono wersję cache service workera.
 
-W tej wersji istniejące wpisy dopasowane po ImportKey aktualizują również datę oraz kody lotnisk z arkusza. Wersja i cache service workera zostały podbite do 2.2.50.
+Wdrożenie: zrób kopię JSON aktualnych lotów. W repozytorium GitHub Pages zastąp index.html, sw.js, manifest.json oraz workbook-data.json plikami z paczki. Commit/push, poczekaj na publikację, a potem w aplikacji kliknij „Odśwież aplikację” i „Połącz Google Sheets / synchronizuj”.
 
-Przed aktualizacją wyeksportuj kopię JSON z komputera i iPhone’a. W GitHubie zastąp pliki index.html, sw.js, manifest.json z tej paczki. Nie zmieniaj ani nie usuwaj workbook-data.json, arkusza Flights ani LogbookSync. Zrób commit i poczekaj na publikację GitHub Pages. Po publikacji w aplikacji kliknij „Odśwież aplikację”, następnie „Połącz Google Sheets / synchronizuj”, aby zaktualizować istniejące wpisy.
-
-Zmiana została sprawdzona pod kątem składni JavaScript; synchronizacja z rzeczywistym arkuszem wymaga uruchomienia w aplikacji.
+Uwaga: jest to celowe czyszczenie testowe dla daty 11.10.2026. Nie używaj tej wersji, jeśli chcesz zachować jakiekolwiek prawdziwe loty z tej daty.
