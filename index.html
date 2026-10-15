@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.39</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.40</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.39</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.40</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -134,7 +134,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.39: PICUS is a separate selectable function and never increments SIC.
+// v2.2.40: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -272,6 +272,9 @@ function parseClock(value){
  if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<1){const mins=Math.round(value*1440)%1440;return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;}
  const v=String(value??'').trim();if(!v||v==='-'||v==='—')return '';
  const iso=v.match(/T(\d{2}):(\d{2})(?::\d{2})?/);if(iso)return `${iso[1]}:${iso[2]}`;
+ // Google Sheets CSV can serialize block timestamps as a localized date followed by time and timezone.
+ const datedTime=v.match(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?(?:\s*(?:GMT|UTC)[+-]?\d{0,2}(?::?\d{2})?)?/i);
+ if(datedTime){let h=Number(datedTime[1]);if(datedTime[4]){h%=12;if(datedTime[4].toUpperCase()==='PM')h+=12;}if(h<24&&Number(datedTime[2])<60)return `${String(h).padStart(2,'0')}:${datedTime[2]}`;}
  // Excel exports formatted times as e.g. '04:14 AM' or '05:38 PM'.
  let m=v.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
  if(m){let h=Number(m[1])%12;if(m[4].toUpperCase()==='PM')h+=12;return `${String(h).padStart(2,'0')}:${m[2]}`;}
@@ -318,8 +321,26 @@ $('verifiedCsvFile').onchange=async e=>{try{
   const clockMinutes=t=>t?Number(t.slice(0,2))*60+Number(t.slice(3,5)):NaN;
   let block=0;if(depTime&&arrTime){block=clockMinutes(arrTime)-clockMinutes(depTime);if(block<=0)block+=1440;if(block>1200)block=0;}
   if(block<=0&&blockText){try{block=minutes(blockText)}catch{block=0}}
-  const ident=[date,fn.toUpperCase(),dep.toUpperCase(),arr.toUpperCase()].join('|');const duplicate=(sourceId&&existing.has(sourceId))||identities.has(ident);
-  if(duplicate){const old=flights.find(f=>(sourceId&&f.sourceId===sourceId)||[f.date,String(f.flightNumber||'').toUpperCase(),String(f.departure||'').toUpperCase(),String(f.arrival||'').toUpperCase()].join('|')===ident);let changed=false;if(old&&block>0&&Number(old.block)!==block){old.block=block;changed=true;}if(old&&sbh>0&&!(Number(old.sbh)>0)){old.sbh=sbh;old.scheduledSTD=parseClock(scheduledSTD);old.scheduledSTA=parseClock(scheduledSTA);changed=true;}if(changed)enriched++;skipped++;continue}
+  const ident=[date,fn.toUpperCase(),dep.toUpperCase(),arr.toUpperCase()].join('|');
+  const normReg=v=>String(v??'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  // Match by stable ImportKey first, then same dated sector + normalized registration.
+  // Flight numbers may be absent in Excel, so they must not prevent updating BLOCK.
+  const old=flights.find(f=>(sourceId&&f.sourceId===sourceId)||(
+    String(f.date||'').slice(0,10)===date &&
+    String(f.departure||'').trim().toUpperCase()===dep.toUpperCase() &&
+    String(f.arrival||'').trim().toUpperCase()===arr.toUpperCase() &&
+    normReg(f.registration)===normReg(val(r,'Registration','Reg'))
+  )) || flights.find(f=>[String(f.date||'').slice(0,10),String(f.flightNumber||'').toUpperCase(),String(f.departure||'').toUpperCase(),String(f.arrival||'').toUpperCase()].join('|')===ident);
+  if(old){let changed=false;
+    if(block>0&&Number(old.block)!==block){old.block=block;changed=true;}
+    if(sourceId&&old.sourceId!==sourceId){old.sourceId=sourceId;changed=true;}
+    if(fn&&old.flightNumber!==fn){old.flightNumber=fn;changed=true;}
+    if(val(r,'Registration','Reg')&&old.registration!==val(r,'Registration','Reg')){old.registration=val(r,'Registration','Reg');changed=true;}
+    if(sbh>0&&Number(old.sbh)!==sbh){old.sbh=sbh;old.scheduledSTD=parseClock(scheduledSTD);old.scheduledSTA=parseClock(scheduledSTA);changed=true;}
+    if(!old.depTime&&depTime){old.depTime=depTime;changed=true;}
+    if(!old.arrTime&&arrTime){old.arrTime=arrTime;changed=true;}
+    if(changed)enriched++;skipped++;continue;
+  }
   if(block<=0){invalid++;continue}
   const captain=val(r,'Captain');const pilot=String(val(r,'PilotFlying','Pilot Flying')).trim().toUpperCase();
   const takeoffPilot=String(val(r,'TakeOffPilot','Take Off Pilot')).trim().toUpperCase().replace(/\s+/g,'');
@@ -482,9 +503,9 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='24';
+  const importVersion='25';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=24',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=25',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
