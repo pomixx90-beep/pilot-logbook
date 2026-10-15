@@ -1,7 +1,9 @@
-POMIWO logbook v2.2.49 — poprawka odczytu karty Flights
+POMIWO logbook v2.2.50 — poprawka aktualizacji trasy z Verified Flights
 
-Przed aktualizacją wyeksportuj kopię JSON z komputera i iPhone’a.
+Przy imporcie aplikacja już odczytuje DepartureICAO i ArrivalICAO w pierwszej kolejności. Błąd polegał na tym, że gdy lot już istniał (dopasowanie po ImportKey), aplikacja aktualizowała m.in. block time i numer lotu, ale nie aktualizowała zapisanej trasy. Dlatego stary wpis mógł pozostać jako EPPO → DBV mimo że arkusz ma EPPO → LDDU.
 
-W GitHubie zastąp tylko index.html, sw.js i manifest.json plikami z tej paczki. Nie zmieniaj ani nie usuwaj workbook-data.json, nie usuwaj вкладки Flights и LogbookSync. Commit changes i poczekaj na publikację GitHub Pages.
+W tej wersji istniejące wpisy dopasowane po ImportKey aktualizują również datę oraz kody lotnisk z arkusza. Wersja i cache service workera zostały podbite do 2.2.50.
 
-Poprawka najpierw odczytuje jawny zakres 'Flights'!A1:AZ1000, a następnie próbuje poprzedniego zakresu. Jeśli API ponownie zwróci pusty wynik, aplikacja pokaże nazwę pliku i listę kart, co ułatwi ustalenie przyczyny. Składnię należy sprawdzić przed publikacją; rzeczywisty dostęp do Google Sheets nie został tu przetestowany.
+Przed aktualizacją wyeksportuj kopię JSON z komputera i iPhone’a. W GitHubie zastąp pliki index.html, sw.js, manifest.json z tej paczki. Nie zmieniaj ani nie usuwaj workbook-data.json, arkusza Flights ani LogbookSync. Zrób commit i poczekaj na publikację GitHub Pages. Po publikacji w aplikacji kliknij „Odśwież aplikację”, następnie „Połącz Google Sheets / synchronizuj”, aby zaktualizować istniejące wpisy.
+
+Zmiana została sprawdzona pod kątem składni JavaScript; synchronizacja z rzeczywistym arkuszem wymaga uruchomienia w aplikacji.
