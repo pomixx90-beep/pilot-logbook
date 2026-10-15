@@ -1,16 +1,9 @@
-POMIWO logbook v2.2.47 — synchronizacja dwukierunkowa przez Google Sheets
+POMIWO logbook v2.2.48 — poprawka tworzenia karty synchronizacji
 
-WAŻNE: przed wdrożeniem wyeksportuj kopię JSON z KOMPUTERA i iPHONA.
+Przed aktualizacją wyeksportuj kopię JSON z komputera i iPhone’a.
 
-1. Rozpakuj ZIP. W GitHubie zastąp index.html, sw.js i manifest.json plikami z paczki. Nie usuwaj ani nie nadpisuj workbook-data.json.
-2. W Google Cloud klient OAuth musi mieć autoryzowane źródło JavaScript: https://pomixx90-beep.github.io. Używany jest Client ID wpisany w index.html; Client Secret nie jest używany.
-3. W ekranie zgody OAuth dodaj swoje konto jako użytkownika testowego. Google Sheets API musi być włączone.
-4. Otwórz aplikację na pierwszym urządzeniu → Dane i kopie zapasowe → „Połącz Google Sheets / synchronizuj”. Zaloguj się kontem mającym dostęp do arkusza i zaakceptuj uprawnienie do odczytu i zapisu arkuszy.
-5. Powtórz logowanie na drugim urządzeniu. Oba urządzenia muszą być połączone tym samym kontem Google i mieć otwartą aplikację; synchronizacja sprawdza zmiany co 60 sekund i po zapisie lotu.
-6. Aplikacja utworzy w istniejącym arkuszu kartę LogbookSync. Nie kasuj tej karty — przechowuje współdzielone wpisy jako JSON. Karta Flights nadal jest źródłem lotów mailowych.
+1. W GitHubie zastąp index.html, sw.js i manifest.json plikami z tej paczki. Nie zmieniaj ani nie usuwaj workbook-data.json.
+2. Zapisz zmiany przez Commit changes i poczekaj na publikację GitHub Pages.
+3. Otwórz aplikację i ponów synchronizację. Karta LogbookSync, która już istnieje, nie powinna być tworzona ponownie.
 
-Sesja OAuth jest przechowywana tylko w pamięci aplikacji. Gdy aplikacja pozostaje otwarta, synchronizacja działa co minutę, a odnowienie tokenu próbuje przebiec bez wymuszania okna wyboru konta. Po zamknięciu/ponownym otwarciu aplikacji może być konieczne ponowne połączenie.
-
-Ograniczenia tej wersji: synchronizuje nowe wpisy i łączy istniejące bez zastępowania historii. Edycje istniejących lotów i usunięcia nie są jeszcze rozsyłane między urządzeniami. Jeśli Google zgłosi brak uprawnień, kliknij ponownie „Połącz Google Sheets / synchronizuj” i zaakceptuj nowe uprawnienie.
-
-Nie udostępniaj Client Secret ani nie umieszczaj go w repozytorium. Zachowaj kopie JSON obu urządzeń do czasu potwierdzenia poprawnego działania.
+Poprawka obsługuje też sytuację, gdy dwa urządzenia próbują utworzyć kartę jednocześnie. Składnia JavaScript została sprawdzona; zapis na rzeczywistym arkuszu wymaga testu po wdrożeniu.

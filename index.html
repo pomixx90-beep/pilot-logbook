@@ -39,13 +39,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.47</span></h1><p>Twój dziennik lotów · wpisy lokalne + loty z Google Sheets</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
+<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.48</span></h1><p>Twój dziennik lotów · wpisy lokalne + loty z Google Sheets</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.47</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.48</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -130,7 +130,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>POMIWO logbook · wersja aplikacji v2.2.47 · synchronizacja przez prywatny arkusz Google. Zapisuj regularnie kopie zapasowe.</footer>
+<footer>POMIWO logbook · wersja aplikacji v2.2.48 · synchronizacja przez prywatny arkusz Google. Zapisuj regularnie kopie zapasowe.</footer>
 </main>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
@@ -142,7 +142,7 @@ const GOOGLE_SYNC_TAB='LogbookSync';
 let googleAccessToken='', googleTokenExpiresAt=0, googleSyncTimer=null, cloudSyncInProgress=false, cloudSyncDebounce=null, googleTokenClient=null;
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.47: PICUS is a separate selectable function and never increments SIC.
+// v2.2.48: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -296,7 +296,7 @@ function parseClock(value){
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
  return '';
 }
-// v2.2.47: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
+// v2.2.48: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
 function repairMissingVerifiedBlocks(){
  let repaired=0;
  for(const f of flights){
@@ -412,10 +412,26 @@ async function sheetsApi(path, options={}){
  const data=await res.json().catch(()=>({}));if(!res.ok)throw Error(data.error?.message||`Google Sheets API: HTTP ${res.status}`);return data;
 }
 async function ensureSyncTab(){
- const meta=await sheetsApi('?fields=sheets.properties(sheetId,title)');
- if((meta.sheets||[]).some(s=>s.properties?.title===GOOGLE_SYNC_TAB))return;
- await sheetsApi(':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{addSheet:{properties:{title:GOOGLE_SYNC_TAB,gridProperties:{rowCount:1000,columnCount:3}}}}]})});
- await sheetsApi(`/values/${encodeURIComponent(GOOGLE_SYNC_TAB+'!A1:C1')}?valueInputOption=RAW`,{method:'PUT',body:JSON.stringify({values:[['FlightId','UpdatedAt','PayloadJSON']]})});
+ // Avoid duplicate addSheet requests when both devices connect at nearly the same time.
+ const tabExists=async()=>{
+  const meta=await sheetsApi('?fields=sheets.properties(sheetId,title)');
+  return (meta.sheets||[]).some(s=>s.properties?.title===GOOGLE_SYNC_TAB);
+ };
+ let exists=await tabExists();
+ if(!exists){
+  try{
+   await sheetsApi(':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{addSheet:{properties:{title:GOOGLE_SYNC_TAB,gridProperties:{rowCount:1000,columnCount:3}}}}]})});
+  }catch(err){
+   // Another device may have created the tab between metadata check and addSheet.
+   exists=await tabExists();
+   if(!exists)throw err;
+  }
+ }
+ // Ensure the header exists even if the tab was created previously but left empty.
+ const data=await sheetsApi(`/values/${encodeURIComponent(GOOGLE_SYNC_TAB+'!A1:C1')}?majorDimension=ROWS`);
+ if(!data.values||!data.values.length||!data.values[0]||!data.values[0].length){
+  await sheetsApi(`/values/${encodeURIComponent(GOOGLE_SYNC_TAB+'!A1:C1')}?valueInputOption=RAW`,{method:'PUT',body:JSON.stringify({values:[['FlightId','UpdatedAt','PayloadJSON']]})});
+ }
 }
 async function fetchVerifiedSheet(){
  const data=await sheetsApi(`/values/${encodeURIComponent('Flights!A:AZ')}?majorDimension=ROWS`);
