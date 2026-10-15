@@ -39,13 +39,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.44</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
+<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.45</span></h1><p>Twój dziennik lotów · wpisy lokalne + loty z Google Sheets</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.44</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.45</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -117,7 +117,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 
 <section id="data" class="view">
 <h2>Dane i kopie zapasowe</h2>
-<div class="panel"><strong>Import z Google Sheets — Verified Flights</strong><p class="sub">W arkuszu „Pilot Logbook - Verified Flights Inbox” wybierz kartę Flights i pobierz ją jako plik Excel (.xlsx) lub CSV. Import dodaje tylko nowe loty, zachowuje istniejące wpisy i pomija duplikaty.</p><label for="crewCodeSetting">Twój Crew Code<input id="crewCodeSetting" maxlength="30" placeholder="np. POMIWO" autocomplete="off"></label><p class="sub">Jeśli TakeOffPilot pasuje do kodu, zaznaczamy PIC. Jeśli TakeOffPilot jest inny, zaznaczamy Co-pilot/SIC. Nocka jest szacowana automatycznie. Kod zapisuje się na tym urządzeniu i możesz go zmienić.</p><button class="secondary" id="saveCrewCode" type="button">Zapisz Crew Code</button><button class="primary" id="chooseVerifiedCSV">Importuj nowe Verified Flights</button><input id="verifiedCsvFile" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/plain" class="hidden"><p class="sub" id="verifiedImportStatus">Import ręczny z prywatnego arkusza; bez udostępniania arkusza publicznie.</p></div>
+<div class="panel"><strong>Import z Google Sheets — Verified Flights</strong><p class="sub">W arkuszu „Pilot Logbook - Verified Flights Inbox” wybierz kartę Flights i pobierz ją jako plik Excel (.xlsx) lub CSV. Import dodaje tylko nowe loty, zachowuje istniejące wpisy i pomija duplikaty.</p><label for="crewCodeSetting">Twój Crew Code<input id="crewCodeSetting" maxlength="30" placeholder="np. POMIWO" autocomplete="off"></label><p class="sub">Jeśli TakeOffPilot pasuje do kodu, zaznaczamy PIC. Jeśli TakeOffPilot jest inny, zaznaczamy Co-pilot/SIC. Nocka jest szacowana automatycznie. Kod zapisuje się na tym urządzeniu i możesz go zmienić.</p><button class="secondary" id="saveCrewCode" type="button">Zapisz Crew Code</button><button class="primary" id="connectGoogleSheets">Połącz Google Sheets / synchronizuj</button><button class="secondary" id="chooseVerifiedCSV">Importuj plik Excel/CSV ręcznie</button><input id="verifiedCsvFile" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/plain" class="hidden"><p class="sub" id="verifiedImportStatus">Synchronizacja odczytu z prywatnego arkusza Google; nowe loty są dodawane lokalnie, a duplikaty pomijane.</p></div>
 <div class="panel">
 <p>Importuj CSV zapisany z Excela jako „CSV UTF-8”. Możesz też wyeksportować wszystkie wpisy do pliku CSV lub kopii JSON.</p>
 <button class="primary" id="chooseCSV">Importuj CSV z Excela</button><input id="csvFile" type="file" accept=".csv,text/csv,text/plain" class="hidden">
@@ -130,13 +130,18 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>POMIWO logbook · wersja aplikacji v2.2.44 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
+<footer>POMIWO logbook · wersja aplikacji v2.2.45 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
 </main>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const KEY='pilot-logbook-flights-v1';
+const GOOGLE_CLIENT_ID='600696089325-61lahdqonjbc3atq3bdg884efsnilj0e.apps.googleusercontent.com';
+const GOOGLE_SHEET_ID='1KWaJFRjwHhkWVAml_4DJ7gWslPmnfp8Yq1JvIORXDWY';
+const GOOGLE_SCOPE='https://www.googleapis.com/auth/spreadsheets.readonly';
+let googleAccessToken='', googleTokenExpiresAt=0, googleSyncTimer=null;
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.44: PICUS is a separate selectable function and never increments SIC.
+// v2.2.45: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -290,7 +295,7 @@ function parseClock(value){
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
  return '';
 }
-// v2.2.44: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
+// v2.2.45: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
 function repairMissingVerifiedBlocks(){
  let repaired=0;
  for(const f of flights){
@@ -317,8 +322,10 @@ function estimateNightForFlight(date,dep,arr,depTime,arrTime){
  return night;
 }
 $('chooseVerifiedCSV').onclick=()=>$('verifiedCsvFile').click();
-$('verifiedCsvFile').onchange=async e=>{try{
- const file=e.target.files[0];if(!file)return;let rows;const ext=(file.name.split('.').pop()||'').toLowerCase();if(ext==='xlsx'||ext==='xls'){if(!window.XLSX)throw Error('Nie udało się załadować czytnika Excel. Otwórz aplikację z internetem i spróbuj ponownie.');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});const ws=wb.Sheets['Flights']||wb.Sheets[wb.SheetNames[0]];if(!ws)throw Error('Plik Excel nie zawiera arkusza.');rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});}else{const raw=await file.text();rows=parseCSV(raw)}if(rows.length<2)throw Error('Plik nie zawiera lotów.');
+async function processVerifiedRows(rows, sourceLabel='Verified Flights', options={}){
+ const askBeforeAdd=options.askBeforeAdd!==false, showAlerts=options.showAlerts!==false;
+ try{
+  if(!Array.isArray(rows)||rows.length<2)throw Error('Arkusz nie zawiera lotów.');
  const hs=rows[0].map(h=>String(h??'').trim().replace(/^\uFEFF/,''));
  const key=s=>String(s??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const col=(...names)=>hs.findIndex(h=>names.some(name=>key(h)===key(name)));
@@ -387,10 +394,47 @@ $('verifiedCsvFile').onchange=async e=>{try{
   const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,block,scheduledSTD:parseClock(scheduledSTD),scheduledSTA:parseClock(scheduledSTA),sbh,picus:isPICUS?block:0,pic:isPIC?block:0,sic:isCOPILOT?block:0,dual:0,instructor:0,ifr:(/^BOEING\s*737-(700|800|8200)$/i.test('Boeing 737-800')?block:0),night,rolePIC:isPIC,rolePICUS:isPICUS,roleCOPILOT:isCOPILOT,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`Crew Code: ${crewCode}`,`Matched TakeOffPilot: ${isPIC?'yes':'no'}`,`Matched LandingPilot: ${isCOPILOT?'yes':'no'}`,`PIC: ${isPIC?'yes (TakeOffPilot matches Crew Code)':'no'}`,`PICUS: ${isPICUS?'yes (TakeOffPilot matches Crew Code and captain is not SELF)':'no'}`,`Co-pilot/SIC: ${isCOPILOT?'yes (TakeOffPilot differs from Crew Code)':'no'}`,`Role match debug: configured=${crewCode||'(empty)'}; takeoff=${takeoffCode||'(empty)'}; landing=${landingCode||'(empty)'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
   imported.push(flight);if(sourceId)existing.add(sourceId);identities.add(ident);
  }
- if(!imported.length){if(enriched>0)save();$('verifiedImportStatus').textContent=`Brak nowych lotów. Uzupełniono SBH w istniejących lotach: ${enriched}. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}
- if(!confirm(`Dodać ${imported.length} nowych lotów? Pominięte duplikaty: ${skipped}. Nie zmieni to istniejących wpisów.`))return;
+ if(!imported.length){if(enriched>0)save();$('verifiedImportStatus').textContent=`Brak nowych lotów. Uzupełniono SBH w istniejących lotach: ${enriched}. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;if(showAlerts)alert($('verifiedImportStatus').textContent);return}
+ if(askBeforeAdd&&!confirm(`Dodać ${imported.length} nowych lotów? Pominięte duplikaty: ${skipped}. Nie zmieni to istniejących wpisów.`))return;
  flights.push(...imported);save();$('verifiedImportStatus').textContent=`Dodano ${imported.length} lotów. Uzupełniono SBH w istniejących lotach: ${enriched}. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}. SBH obliczane jest jako STA − STD.`;$('dataStatus').textContent=$('verifiedImportStatus').textContent;alert($('verifiedImportStatus').textContent);
- }catch(err){alert('Błąd importu Verified Flights: '+(err.message||err))}finally{e.target.value=''}};
+  }catch(err){throw Error('Błąd importu '+sourceLabel+': '+(err.message||err));}
+}
+$('verifiedCsvFile').onchange=async e=>{try{
+ const file=e.target.files[0];if(!file)return;let rows;const ext=(file.name.split('.').pop()||'').toLowerCase();if(ext==='xlsx'||ext==='xls'){if(!window.XLSX)throw Error('Nie udało się załadować czytnika Excel. Otwórz aplikację z internetem i spróbuj ponownie.');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});const ws=wb.Sheets['Flights']||wb.Sheets[wb.SheetNames[0]];if(!ws)throw Error('Plik Excel nie zawiera arkusza.');rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});}else{const raw=await file.text();rows=parseCSV(raw)}
+ await processVerifiedRows(rows,'Verified Flights');
+ }catch(err){alert(err.message||err)}finally{e.target.value=''}};
+// Google Sheets read-only sync: token stays in memory and is never written to localStorage.
+function setSheetsStatus(msg){const el=$('verifiedImportStatus');if(el)el.textContent=msg;}
+async function fetchVerifiedSheet(){
+ if(!googleAccessToken || Date.now()>=googleTokenExpiresAt)throw Error('Sesja Google wygasła. Kliknij „Połącz Google Sheets / synchronizuj” ponownie.');
+ const url=`https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/Flights!A:AZ?majorDimension=ROWS`;
+ const res=await fetch(url,{headers:{Authorization:`Bearer ${googleAccessToken}`}});
+ const data=await res.json();if(!res.ok)throw Error(data.error?.message||`Google Sheets API: HTTP ${res.status}`);
+ if(!Array.isArray(data.values)||data.values.length<2)throw Error('Nie znaleziono danych w karcie „Flights”. Sprawdź nazwę karty.');
+ return data.values;
+}
+async function syncGoogleSheet(showResult=true){
+ try{
+  setSheetsStatus('Pobieram loty z Google Sheets…');
+  const rows=await fetchVerifiedSheet();
+  const before=flights.length;
+  await processVerifiedRows(rows,'Google Sheets',{askBeforeAdd:false,showAlerts:false});
+  const added=flights.length-before;
+  setSheetsStatus(`Synchronizacja zakończona: ${added} nowych lotów; historia lokalna zachowana. Ostatnia synchronizacja: ${new Date().toLocaleString('pl-PL')}.`);
+  return {ok:true,added};
+ }catch(err){setSheetsStatus('Synchronizacja nieudana: '+(err.message||err));if(showResult)alert('Synchronizacja Google Sheets: '+(err.message||err));return {ok:false,error:err};}
+}
+function connectGoogleSheets(){
+ if(!window.google?.accounts?.oauth2){setSheetsStatus('Nie załadował się moduł logowania Google. Sprawdź internet i odśwież aplikację.');return;}
+ const client=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPE,callback:async response=>{
+  if(response.error){setSheetsStatus('Logowanie Google nie powiodło się: '+response.error);return;}
+  googleAccessToken=response.access_token;googleTokenExpiresAt=Date.now()+(Number(response.expires_in||3600)-60)*1000;
+  const result=await syncGoogleSheet(true);
+  if(result.ok){if(googleSyncTimer)clearInterval(googleSyncTimer);googleSyncTimer=setInterval(()=>{if(googleAccessToken&&Date.now()<googleTokenExpiresAt)syncGoogleSheet(false)},5*60*1000);}
+ }});
+ client.requestAccessToken({prompt:'consent'});
+}
+$('connectGoogleSheets').onclick=connectGoogleSheets;
 function norm(s){return s.trim().toLowerCase().replaceAll('_',' ')}
 function parseDate(s){
  s=String(s??'').trim();if(!s)return '';let m;

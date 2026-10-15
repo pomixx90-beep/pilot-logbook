@@ -1,11 +1,10 @@
-# POMIWO logbook v2.2.44
+POMIWO logbook v2.2.45 — Google Sheets sync (read-only)
 
-Zmiany:
-- nazwa aplikacji zmieniona na POMIWO logbook; manifest PWA z nazwą POMIWO,
-- przycisk „＋ Dodaj lot” przeniesiony do prawego górnego rogu nagłówka,
-- gest przeciągnięcia w dół na iPhonie od samej góry strony uruchamia odświeżenie aplikacji,
-- zwiększona wersja aplikacji i cache service workera.
+1. Przed aktualizacją wyeksportuj kopię JSON z aplikacji na każdym urządzeniu.
+2. W repozytorium GitHub zastąp index.html i sw.js; pozostaw workbook-data.json bez zmian. manifest.json również można zastąpić plikiem z paczki.
+3. Ustawienia OAuth: klient Web musi mieć autoryzowane źródło JavaScript https://pomixx90-beep.github.io. Klient ID jest wpisany w index.html; Client Secret nie jest używany.
+4. Google Sheets API musi być włączone, a konto Google dodane jako użytkownik testowy na ekranie zgody OAuth.
+5. W aplikacji otwórz Dane i kopie zapasowe → „Połącz Google Sheets / synchronizuj”, zaloguj się tym samym kontem, które ma dostęp do arkusza.
+6. Aplikacja odczytuje kartę Flights z arkusza wskazanego w konfiguracji, dodaje nowe loty do lokalnej historii i pomija duplikaty. Nie wysyła lokalnych wpisów do Google Sheets; jest to synchronizacja jednokierunkowa z arkusza do urządzenia.
 
-Wdrożenie: przed zmianą wyeksportuj JSON. W GitHub podmień `index.html`, `sw.js` i `manifest.json`. Nie zmieniaj `workbook-data.json`. Zachowuje to poprawki BLOCK/SBH z v2.2.43.
-
-Po wdrożeniu na iPhonie odśwież stronę. Jeśli aplikacja jest dodana do ekranu początkowego, zamknij ją i uruchom ponownie, aby iOS pobrał nową nazwę manifestu.
+Uwaga: ten pakiet nie zawiera workbook-data.json. Nie usuwaj istniejącego pliku danych ani nie nadpisuj lokalnej historii.
