@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.37</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.38</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.37</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.38</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -134,7 +134,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.37: PICUS is a separate selectable function and never increments SIC.
+// v2.2.38: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -215,7 +215,7 @@ function renderDashboardLogbookSummary(){
  ];
  const el=$('dashboardLogbookSummary');if(el)el.innerHTML=rows.map(([k,v])=>`<div class="card"><small>${esc(k)}</small><div class="value">${esc(v)}</div></div>`).join('');
  const excel=flights.filter(f=>f.sourceSheet).length, other=flights.length-excel;
- const note=$('dashboardSummaryNote');if(note)note.textContent=`Źródło wpisów: ${excel} lotów z arkuszy Excela i ${other} pozostałych. SE/ME/Multi-pilot są klasyfikacją orientacyjną według typu samolotu; sprawdź ją dla typów nietypowych.`;
+ const note=$('dashboardSummaryNote');if(note)note.textContent=`Źródło wpisów: ${excel} lotów z arkuszy Excela i ${other} pozostałych. SE/ME/Multi-pilot są odczytywane z odpowiednich kolumn arkusza źródłowego.`;
 }
 function render(){
 refreshAirportSuggestions();renderYearStats();renderReports();renderDashboardLogbookSummary();
@@ -277,6 +277,9 @@ function parseClock(value){
  if(m){let h=Number(m[1])%12;if(m[4].toUpperCase()==='PM')h+=12;return `${String(h).padStart(2,'0')}:${m[2]}`;}
  m=v.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);if(m)return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
  m=v.match(/^(\d{1,2})\.(\d{2})$/);if(m)return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
+ // CSV/Sheets exports may encode timestamps as '13/10/2026 12:12:00' or '2026-10-13 12:12:00'.
+ m=v.match(/(?:^|[ T,])(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?(?:Z|\s|$)/i);
+ if(m){let h=Number(m[1]);if(m[4]){h%=12;if(m[4].toUpperCase()==='PM')h+=12;}if(h<24&&Number(m[2])<60)return `${String(h).padStart(2,'0')}:${m[2]}`;}
  const n=Number(v);if(Number.isFinite(n)&&n>=0&&n<1){const mins=Math.round(n*1440);return `${String(Math.floor(mins/60)%24).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;}
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
  return '';
@@ -479,9 +482,9 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='23';
+  const importVersion='24';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=23',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=24',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
@@ -489,32 +492,49 @@ async function initWorkbook(){
   const oldById=new Map(flights.map(f=>[f.id,f]));
   enrichCaptainData(workbookData);
   const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};return {...old,...f,id:f.id||old.id||uid(),captain:f.captain??old.captain??'',depTime:f.depTime??'',arrTime:f.arrTime??'',se:Number(f.se)||0,me:Number(f.me)||0,multiPilot:Number(f.multiPilot)||0,picus:(f.captain&&!/^SELF$/i.test(String(f.captain).trim())&&Number(f.pic)>0)?Number(f.pic):0,pic:Number(f.pic)||0,sic:Number(f.sic)||0,rolePIC:Number(f.pic)>0,roleCOPILOT:Number(f.sic)>0,dual:Number(f.dual)||0,instructor:Number(f.instructor)||0,ifr:Number(f.ifr)||0,night:Number(f.night)||0,sbh:Number(f.sbh)||0,takeoffsDay:Number(f.takeoffsDay)||0,takeoffsNight:Number(f.takeoffsNight)||0,takeoffDay:!!f.takeoffDay,takeoffNight:!!f.takeoffNight,landings:Number(f.landings)||0,landingsDay:Number(f.landingsDay)||0,landingsNight:Number(f.landingsNight)||0}});
-  // Merge mail-imported sectors into their matching Excel sector instead of showing both.
-  // Excel is authoritative for BLOCK and daily SBH; mail metadata (flight number/source ID)
-  // is retained when the same sector exists in both sources.
+  // Reconcile previously imported mail rows against the refreshed Excel sectors.
+  // Match registration without punctuation (e.g. SPRSA vs SP-RSA), preserve mail metadata,
+  // but keep the workbook's verified BLOCK/SBH when present. Only mail rows are merged;
+  // manual user-entered flights remain untouched.
   const normCode=v=>String(v??'').trim().toUpperCase();
+  const normReg=v=>normCode(v).replace(/[^A-Z0-9]/g,'');
   const normDate=v=>String(v??'').slice(0,10);
-  const sectorKey=f=>[normDate(f.date),normCode(f.departure),normCode(f.arrival),normCode(f.registration)].join('|');
-  const refreshedBySector=new Map();
-  for(const f of refreshed){const k=sectorKey(f);if(!refreshedBySector.has(k))refreshedBySector.set(k,[]);refreshedBySector.get(k).push(f);}
-  const manual=[];
-  const usedExcelIds=new Set();
-  for(const f of flights.filter(x=>!x.sourceSheet&&!refreshed.some(y=>y.id===x.id))){
-    const candidates=(refreshedBySector.get(sectorKey(f))||[]).filter(x=>!usedExcelIds.has(x.id));
+  const routeKey=f=>[normDate(f.date),normCode(f.departure),normCode(f.arrival)].join('|');
+  const sectorKey=f=>[routeKey(f),normReg(f.registration)].join('|');
+  const refreshedBySector=new Map(),refreshedByRoute=new Map();
+  for(const f of refreshed){
+    const sk=sectorKey(f),rk=routeKey(f);
+    if(!refreshedBySector.has(sk))refreshedBySector.set(sk,[]);
+    refreshedBySector.get(sk).push(f);
+    if(!refreshedByRoute.has(rk))refreshedByRoute.set(rk,[]);
+    refreshedByRoute.get(rk).push(f);
+  }
+  const usedExcelIds=new Set(),mailIds=new Set(),manual=[];
+  const oldMail=flights.filter(x=>x.sourceId&&!x.sourceSheet);
+  for(const f of oldMail){
+    let candidates=(refreshedBySector.get(sectorKey(f))||[]).filter(x=>!usedExcelIds.has(x.id));
+    if(!candidates.length){
+      const routeCandidates=(refreshedByRoute.get(routeKey(f))||[]).filter(x=>!usedExcelIds.has(x.id));
+      // Use route-only fallback only if there is exactly one possible sector that day.
+      if(routeCandidates.length===1)candidates=routeCandidates;
+    }
     if(candidates.length){
       const oldBlock=Number(f.block)||0;
       candidates.sort((a,b)=>Math.abs((Number(a.block)||0)-oldBlock)-Math.abs((Number(b.block)||0)-oldBlock));
-      const match=candidates[0];usedExcelIds.add(match.id);
+      const match=candidates[0];usedExcelIds.add(match.id);mailIds.add(f.id);
       if(!match.flightNumber&&f.flightNumber)match.flightNumber=f.flightNumber;
       if(!match.sourceId&&f.sourceId)match.sourceId=f.sourceId;
-      // Keep Excel BLOCK when valid, but fill an empty/zero Excel BLOCK from actual OnBlock-OffBlock in mail.
       if(!(Number(match.block)>0)&&Number(f.block)>0)match.block=Number(f.block);
       if(!(Number(match.sbh)>0)&&Number(f.sbh)>0)match.sbh=Number(f.sbh);
       if(!match.depTime&&f.depTime)match.depTime=f.depTime;
       if(!match.arrTime&&f.arrTime)match.arrTime=f.arrTime;
+      if(!match.scheduledSTD&&f.scheduledSTD)match.scheduledSTD=f.scheduledSTD;
+      if(!match.scheduledSTA&&f.scheduledSTA)match.scheduledSTA=f.scheduledSTA;
       if(!match.notes&&f.notes)match.notes=f.notes;
     }else manual.push(f);
   }
+  // Keep all manually created records, excluding only mail records that were merged above.
+  for(const f of flights.filter(x=>!x.sourceSheet&&!x.sourceId))manual.push(f);
   flights=[...refreshed,...manual];
   localStorage.setItem(KEY,JSON.stringify(flights));
   await durableWrite();
