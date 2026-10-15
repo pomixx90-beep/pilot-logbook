@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.27</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.31</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.27</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.31</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -53,18 +53,8 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <div class="card"><small>Lądowania</small><div class="value" id="landings">0</div></div>
 <div class="card"><small>Nalot w tym roku</small><div class="value" id="thisYear">0:00</div></div>
 </div>
-<h2>Funkcje i warunki</h2>
-<div class="cards">
-<div class="card"><small>PIC</small><div class="value" id="dashPIC">0:00</div></div>
-<div class="card"><small>Co-pilot</small><div class="value" id="dashSIC">0:00</div></div>
-<div class="card"><small>Dual</small><div class="value" id="dashDual">0:00</div></div>
-<div class="card"><small>IFR</small><div class="value" id="dashIFR">0:00</div></div>
-<div class="card"><small>SE</small><div class="value" id="dashSE">0:00</div></div>
-<div class="card"><small>ME</small><div class="value" id="dashME">0:00</div></div>
-<div class="card"><small>Multi-pilot</small><div class="value" id="dashMultiPilot">0:00</div></div>
-<div class="card"><small>Take-offs day / night</small><div class="value" id="dashTakeoffs">0 / 0</div></div>
-<div class="card"><small>Landings day / night</small><div class="value" id="dashLandingTypes">0 / 0</div></div>
-</div>
+<h2>Podsumowanie logbooka</h2>
+<div class="cards" id="dashboardLogbookSummary"></div><p class="sub" id="dashboardSummaryNote"></p>
 <h2>Wskaźniki czasu lotu</h2>
 <div class="panel" id="limit7"></div><div style="height:8px"></div><div class="panel" id="limit28"></div><div style="height:8px"></div><div class="panel" id="limitYear"></div><div style="height:8px"></div><div class="panel" id="limit365"></div>
 <p class="sub">28 dni: próg 100 h; rok kalendarzowy: 900 h; 12 kolejnych miesięcy: 1 000 h. 7 dni pokazuje sumę nalotu informacyjnie, bez limitu czasu lotu. To nie jest pełna kontrola FTL — limity duty, FDP i odpoczynku wymagają osobnych danych oraz zasad operatora.</p>
@@ -144,7 +134,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.27: PICUS is a separate selectable function and never increments SIC.
+// v2.2.31: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -205,11 +195,32 @@ function renderReports(){
  putReport('reportTypes',types.map(x=>[esc(x.key),x.count,total?(100*x.count/total).toFixed(1)+'%':'0.0%',fmt(x.block)]),4);
  putReport('reportPeople',captains.map(x=>[esc(x.key),x.count,fmt(x.block),totalTime?(100*x.block/totalTime).toFixed(1)+'%':'0.0%']),4);
 }
+function renderDashboardLogbookSummary(){
+ const total=key=>flights.reduce((n,f)=>n+(Number(f[key])||0),0);
+ const count=key=>flights.reduce((n,f)=>n+(Number(f[key])||0),0);
+ const aircraftClass=f=>{const t=String(f.aircraftType||'').toUpperCase();if(/B737|BOEING 737|MULTI.?PILOT/.test(t))return 'multi';if(/\bME\b|MULTI.?ENGINE|TWIN|BIMOTOR/.test(t))return 'me';return 'se'};
+ // SE/ME are separate logbook columns; multi-pilot is a separate time category, not a synonym for multi-engine.
+ const hasSeMe=flights.some(f=>f.se!=null||f.me!=null||f.multiPilot!=null);
+ const se=hasSeMe?flights.reduce((n,f)=>n+(Number(f.se)||0),0):flights.filter(f=>aircraftClass(f)==='se').reduce((n,f)=>n+(Number(f.block)||0),0);
+ const me=hasSeMe?flights.reduce((n,f)=>n+(Number(f.me)||0),0):flights.filter(f=>aircraftClass(f)==='me').reduce((n,f)=>n+(Number(f.block)||0),0);
+ const multi=flights.reduce((n,f)=>n+(Number(f.multiPilot)||0),0);
+ const rows=[
+  ['PIC',fmt(total('pic')),'time'],['PICUS',fmt(total('picus')),'time'],['Co-pilot / SIC',fmt(total('sic')),'time'],
+  ['Dual',fmt(total('dual')),'time'],['IFR',fmt(total('ifr')),'time'],['NIGHT',fmt(total('night')),'time'],
+  ['SE',fmt(se),'time'],['ME',fmt(me),'time'],['Multi-pilot',fmt(multi),'time'],
+  ['Starty — dzień',String(flights.reduce((n,f)=>n+(Number(f.takeoffsDay??f.takeoffDayCount??(f.takeoffDay?1:0))||0),0)),'count'],
+  ['Starty — noc',String(flights.reduce((n,f)=>n+(Number(f.takeoffsNight??f.takeoffNightCount??(f.takeoffNight?1:0))||0),0)),'count'],
+  ['Lądowania — dzień',String(total('landingsDay')),'count'],['Lądowania — noc',String(total('landingsNight')),'count'],['Lądowania — razem',String(total('landings')),'count'],
+  ['Loty / sektory',String(flights.length),'count']
+ ];
+ const el=$('dashboardLogbookSummary');if(el)el.innerHTML=rows.map(([k,v])=>`<div class="card"><small>${esc(k)}</small><div class="value">${esc(v)}</div></div>`).join('');
+ const excel=flights.filter(f=>f.sourceSheet).length, other=flights.length-excel;
+ const note=$('dashboardSummaryNote');if(note)note.textContent=`Źródło wpisów: ${excel} lotów z arkuszy Excela i ${other} pozostałych. SE/ME/Multi-pilot są klasyfikacją orientacyjną według typu samolotu; sprawdź ją dla typów nietypowych.`;
+}
 function render(){
-refreshAirportSuggestions();renderYearStats();renderReports();
+refreshAirportSuggestions();renderYearStats();renderReports();renderDashboardLogbookSummary();
 let now=new Date(), yr=String(now.getFullYear());let m7=sum(flights.filter(f=>within(f,startDays(7)))),m28=sum(flights.filter(f=>within(f,startDays(28)))),m365=sum(flights.filter(f=>within(f,startDays(365)))),mYear=sum(flights.filter(f=>String(f.date||'').startsWith(yr)));
-$('total').textContent=fmt(sum(flights));$('sectors').textContent=flights.length;
-$('dashPIC').textContent=fmt(flights.reduce((n,f)=>n+(+f.pic||0),0));$('dashSIC').textContent=fmt(flights.reduce((n,f)=>n+(+f.sic||0),0));$('dashDual').textContent=fmt(flights.reduce((n,f)=>n+(+f.dual||0),0));$('dashIFR').textContent=fmt(flights.reduce((n,f)=>n+(+f.ifr||0),0));$('dashSE').textContent=fmt(flights.reduce((n,f)=>n+(+f.se||0),0));$('dashME').textContent=fmt(flights.reduce((n,f)=>n+(+f.me||0),0));$('dashMultiPilot').textContent=fmt(flights.reduce((n,f)=>n+(+f.multiPilotTime||0),0));$('dashTakeoffs').textContent=flights.reduce((n,f)=>n+(+f.takeoffDay||0),0)+' / '+flights.reduce((n,f)=>n+(+f.takeoffNight||0),0);$('dashLandingTypes').textContent=flights.reduce((n,f)=>n+(+f.landingsDay||0),0)+' / '+flights.reduce((n,f)=>n+(+f.landingsNight||0),0);$('last7').textContent=fmt(m7);$('last28').textContent=fmt(m28);$('last365').textContent=fmt(m365);$('landings').textContent=flights.reduce((a,f)=>a+(+f.landings||0),0);$('thisYear').textContent=fmt(sum(flights.filter(f=>f.date.startsWith(yr))));
+$('total').textContent=fmt(sum(flights));$('sectors').textContent=flights.length;$('last7').textContent=fmt(m7);$('last28').textContent=fmt(m28);$('last365').textContent=fmt(m365);$('landings').textContent=flights.reduce((a,f)=>a+(+f.landings||0),0);$('thisYear').textContent=fmt(sum(flights.filter(f=>f.date.startsWith(yr))));
 $('limit7').innerHTML=`<div style="border-radius:12px;padding:2px"><strong>Czas lotu · 7 dni</strong><div style="font-size:22px;font-weight:750;margin-top:6px">${fmt(m7)}</div><span class="sub">Suma czasu lotu z ostatnich 7 dni. Wskaźnik informacyjny — nie jest limitem duty ani FDP.</span></div>`;$('limit28').innerHTML=limitHTML('Czas lotu · 28 dni',m28,6000);$('limitYear').innerHTML=limitHTML('Czas lotu · rok kalendarzowy',mYear,54000);$('limit365').innerHTML=limitHTML('Czas lotu · 365 dni',m365,60000);
 let recent=sorted().slice(0,4);$('recent').innerHTML=recent.length?recent.map(f=>`<div class="flight recentFlight" role="button" tabindex="0" onclick="editFlight('${f.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editFlight('${f.id}')}"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'')}</div><div class="meta">Dotknij, aby otworzyć lot</div></div><div class="time">${fmt(f.block)}</div></div>`).join(''):'<div class="empty">Brak lotów. Dodaj pierwszy wpis.</div>';
 renderHistory()
@@ -257,7 +268,10 @@ $('exportJSON').onclick=()=>download('pilot-logbook-backup.json',JSON.stringify(
 $('chooseCSV').onclick=()=>$('csvFile').click();
 $('csvFile').onchange=async e=>{try{let file=e.target.files[0];if(!file)return;let text=await file.text();let rows=parseCSV(text);if(!rows.length)throw Error('Plik jest pusty.');let hs=rows[0].map(norm);let idx=(...names)=>hs.findIndex(h=>names.includes(h));let di=idx('date','flight date','flightdate','data');if(di<0)throw Error('Brak kolumny Date/Data/FlightDate. Użyj importu „Importuj nowe Verified Flights” dla arkusza Verified Flights.');let get=(r,...names)=>{let i=idx(...names);return i>=0?(r[i]||'').trim():''};let newF=[];for(let n=1;n<rows.length;n++){let r=rows[n];if(!r.some(x=>x.trim()))continue;let raw=r[di];let d=parseDate(raw);if(!d)throw Error('Nieprawidłowa data w wierszu '+(n+1)+': '+raw);newF.push({id:uid(),date:d,flightNumber:get(r,'flight number','flight no','flight','numer lotu'),aircraftType:get(r,'aircraft type','type','aircraft','typ samolotu'),registration:get(r,'registration','reg','rejestracja'),departure:get(r,'departure','from','dep','odlot').toUpperCase(),arrival:get(r,'arrival','destination','to','arr','przylot').toUpperCase(),block:minutes(get(r,'block time','total time','total','block','czas lotu')),pic:minutes(get(r,'pic','pic time')),sic:minutes(get(r,'sic','copilot','co-pilot','sic time')),ifr:minutes(get(r,'ifr','ifr time')),night:minutes(get(r,'night','night time')),landings:Number(get(r,'landings','landing','ldg','lądowania')||1),notes:get(r,'notes','remarks','comments','uwagi')})}if(!newF.length)throw Error('Nie znaleziono wpisów do importu.');if(confirm(`Zaimportować ${newF.length} lotów? Wpisy zostaną dodane do istniejących.`)){flights.push(...newF);save();$('dataStatus').textContent=`Zaimportowano ${newF.length} lotów.`} }catch(err){alert('Błąd importu: '+err.message)}finally{e.target.value=''}};
 function parseClock(value){
- const v=String(value??'').trim();if(!v)return '';
+ if(value instanceof Date&&!Number.isNaN(value.getTime()))return `${String(value.getUTCHours()).padStart(2,'0')}:${String(value.getUTCMinutes()).padStart(2,'0')}`;
+ if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<1){const mins=Math.round(value*1440)%1440;return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;}
+ const v=String(value??'').trim();if(!v||v==='-'||v==='—')return '';
+ const iso=v.match(/T(\d{2}):(\d{2})(?::\d{2})?/);if(iso)return `${iso[1]}:${iso[2]}`;
  // Excel exports formatted times as e.g. '04:14 AM' or '05:38 PM'.
  let m=v.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
  if(m){let h=Number(m[1])%12;if(m[4].toUpperCase()==='PM')h+=12;return `${String(h).padStart(2,'0')}:${m[2]}`;}
@@ -321,7 +335,7 @@ $('verifiedCsvFile').onchange=async e=>{try{
   // User rule: matching TakeOffPilot = PIC + PICUS when another captain is recorded.
   // Non-matching TakeOffPilot = Co-pilot/SIC only, never PICUS.
   const isPICUS=isPIC && !!captain && !/^SELF$/i.test(String(captain).trim());
-  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,block,picus:isPICUS?block:0,pic:isPIC?block:0,sic:isCOPILOT?block:0,dual:0,instructor:0,ifr:0,night,rolePIC:isPIC,rolePICUS:isPICUS,roleCOPILOT:isCOPILOT,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`Crew Code: ${crewCode}`,`Matched TakeOffPilot: ${isPIC?'yes':'no'}`,`Matched LandingPilot: ${isCOPILOT?'yes':'no'}`,`PIC: ${isPIC?'yes (TakeOffPilot matches Crew Code)':'no'}`,`PICUS: ${isPICUS?'yes (TakeOffPilot matches Crew Code and captain is not SELF)':'no'}`,`Co-pilot/SIC: ${isCOPILOT?'yes (TakeOffPilot differs from Crew Code)':'no'}`,`Role match debug: configured=${crewCode||'(empty)'}; takeoff=${takeoffCode||'(empty)'}; landing=${landingCode||'(empty)'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
+  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,block,picus:isPICUS?block:0,pic:isPIC?block:0,sic:isCOPILOT?block:0,dual:0,instructor:0,ifr:(/^BOEING\s*737-(700|800|8200)$/i.test('Boeing 737-800')?block:0),night,rolePIC:isPIC,rolePICUS:isPICUS,roleCOPILOT:isCOPILOT,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`Crew Code: ${crewCode}`,`Matched TakeOffPilot: ${isPIC?'yes':'no'}`,`Matched LandingPilot: ${isCOPILOT?'yes':'no'}`,`PIC: ${isPIC?'yes (TakeOffPilot matches Crew Code)':'no'}`,`PICUS: ${isPICUS?'yes (TakeOffPilot matches Crew Code and captain is not SELF)':'no'}`,`Co-pilot/SIC: ${isCOPILOT?'yes (TakeOffPilot differs from Crew Code)':'no'}`,`Role match debug: configured=${crewCode||'(empty)'}; takeoff=${takeoffCode||'(empty)'}; landing=${landingCode||'(empty)'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
   imported.push(flight);if(sourceId)existing.add(sourceId);identities.add(ident);
  }
  if(!imported.length){$('verifiedImportStatus').textContent=`Brak nowych lotów. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}
@@ -342,119 +356,133 @@ $('jsonFile').onchange=async e=>{try{let f=e.target.files[0];if(!f)return;let ob
 const WORKBOOK_KEY='pilot-logbook-workbook-v1';
 const IMPORT_KEY='pilot-logbook-excel-flights-import-v2';
 let workbookData=null;
-function excelDate(v){if(!v)return '';let s=String(v);let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[1]}-${m[2]}-${m[3]}`:''}
-function excelMinutes(v){if(v==null||v==='')return 0;let s=String(v).trim();let m=s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);if(m)return (+m[1])*60+(+m[2])+(+(m[3]||0)>=30?1:0);let n=Number(v);return Number.isFinite(n)&&n>0?Math.round(n*1440):0}
+function excelDate(v){
+ if(!v)return '';if(v instanceof Date&&!Number.isNaN(v.getTime()))return `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`;
+ let s=String(v).trim(),m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);if(m)return `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`;
+ m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);if(m){let a=+m[1],b=+m[2],y=+m[3],d,mo;if(a>12){d=a;mo=b}else if(b>12){mo=a;d=b}else{d=a;mo=b}return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+ return parseDate(s)||'';
+}
+function excelMinutes(v){if(v==null||v==='')return 0;if(v instanceof Date)return v.getUTCHours()*60+v.getUTCMinutes();let s=String(v).trim();let m=s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);if(m)return (+m[1])*60+(+m[2])+(+(m[3]||0)>=30?1:0);let clock=parseClock(s);if(clock)return Number(clock.slice(0,2))*60+Number(clock.slice(3,5));let n=Number(v);return Number.isFinite(n)&&n>0?Math.round(n*1440):0}
 function excelColumnMap(rows){
- const map={date:0,departure:1,depTime:2,arrival:3,arrTime:4,aircraftType:5,registration:6,se:7,me:8,multiPilotTime:11,block:13,landDay:18,landNight:19,takeoffDay:16,takeoffNight:17};
- const norm=v=>String(v??'').trim().toUpperCase().replace(/\\s+/g,' ');
- for(let ri=0;ri<Math.min(rows.length,12);ri++){
-  const row=rows[ri]||[];
+ const map={}, norm=v=>String(v??'').trim().toUpperCase().replace(/\s+/g,' ').replace(/\n/g,' ');
+ const rowText=(ri)=>((rows[ri]||[]).map(norm));
+ // Find primary labels by their own header cells, including the second header row used in 2024+.
+ for(let ri=0;ri<Math.min(rows.length,10);ri++){
+  const row=rowText(ri);
   for(let ci=0;ci<row.length;ci++){
-   const v=norm(row[ci]);
-   if(v==='DATE')map.date=ci;
+   const v=row[ci];
+   if(v==='DATE'&&map.date==null)map.date=ci;
+   if(v==='DEPARTURE')map.departure=ci;
+   if(v==='ARRIVAL')map.arrival=ci;
+   if(v==='AIRCRAFT'||v==='MAKE, MODEL, VARIANT')map.aircraftType=ci;
+   if(v==='REGISTRATION')map.registration=ci;
+   if(v==='TOTAL TIME')map.block=ci;
    if(v==='NAME PIC')map.captain=ci;
    if(v==='SBH')map.sbh=ci;
    if(v==='SE')map.se=ci;
    if(v==='ME')map.me=ci;
-   if(v==='MULTI-PILOT TIME')map.multiPilotTime=ci;
-   if(v==='LANDINGS'){map.landDay=ci;map.landNight=ci+1;}
-   if(v==='TAKEOFFS'){map.takeoffDay=ci;map.takeoffNight=ci+1;}
-   if(v==='NIGHT' && row.some(x=>norm(x)==='IFR'))map.night=ci;
-   if(v==='IFR')map.ifr=ci;
-   if(v==='PIC' && row.some(x=>['IFR','CO-PILOT','DUAL','INSTRUCTOR'].includes(norm(x))))map.pic=ci;
-   if(v==='CO-PILOT')map.sic=ci;
+   if(v==='MULTI-PILOT TIME')map.multiPilot=ci;
+   if(v==='PIC')map.pic=ci;
+   if(['CO-PILOT','COPILOT','CO PILOT'].includes(v))map.sic=ci;
    if(v==='DUAL')map.dual=ci;
    if(v==='INSTRUCTOR')map.instructor=ci;
-   if(v==='TIME' && ci>0){
-    const parent=norm((rows[ri-1]||[])[ci]);
-    if(parent==='DEPARTURE')map.depTime=ci;
-    if(parent==='ARRIVAL')map.arrTime=ci;
+   if(v==='IFR')map.ifr=ci;
+   if(v==='NIGHT' && row.includes('IFR'))map.night=ci;
+   if(v==='TIME'){
+    // The two TIME child headers belong to the DEPARTURE and ARRIVAL groups; positions are stable even when parent cells are merged.
+    const placeCount=row.slice(0,ci).filter(x=>x==='PLACE').length;
+    if(placeCount===1)map.depTime=ci;
+    if(placeCount>=2)map.arrTime=ci;
    }
   }
  }
-
- // SBH was inserted before NAME PIC in 2025, shifting later columns by one.
- const year=Number(String(rows.find(r=>r&&/^\\d{1,2}[-/]\\d{1,2}[-/]\\d{4}/.test(String(r[0]||'')))?.[0]||'').slice(-4));
- if(year>=2025 && map.captain==null)map.captain=17;
+ // Detect TAKEOFFS/LANDINGS by group columns and their DAY/NIGHT child headers.
+ // Do not infer a parent from adjacent cells: merged-cell exports leave those cells blank.
+ for(let ri=0;ri<Math.min(rows.length,10);ri++){
+  const row=rowText(ri);
+  for(let ci=0;ci<row.length;ci++){
+   if(row[ci]==='TAKEOFFS'||row[ci]==='LANDINGS'){
+    const group=row[ci], childRow=rowText(ri+1);
+    if(childRow[ci]==='DAY'){if(group==='TAKEOFFS')map.takeoffDay=ci;else map.landDay=ci;}
+    if(childRow[ci+1]==='NIGHT'){if(group==='TAKEOFFS')map.takeoffNight=ci+1;else map.landNight=ci+1;}
+   }
+  }
+ }
+ // Some sheets place the TAKEOFFS/LANDINGS label on the row immediately above DAY/NIGHT.
+ for(let ri=1;ri<Math.min(rows.length,10);ri++){
+  const row=rowText(ri), prev=rowText(ri-1);
+  for(let ci=0;ci<row.length;ci++)if(row[ci]==='DAY'||row[ci]==='NIGHT'){
+   for(let rr=ri-1;rr>=Math.max(0,ri-2);rr--){
+    const parent=rowText(rr)[ci];
+    if(parent==='TAKEOFFS'){if(row[ci]==='DAY')map.takeoffDay=ci;else map.takeoffNight=ci;break;}
+    if(parent==='LANDINGS'){if(row[ci]==='DAY')map.landDay=ci;else map.landNight=ci;break;}
+   }
+  }
+ }
+ // Header rows vary by year; locate TIME under the DEPARTURE/ARRIVAL group explicitly.
+ for(let ri=0;ri<Math.min(rows.length,12);ri++){
+  const row=rowText(ri);
+  for(let ci=0;ci<row.length;ci++)if(row[ci]==='TIME'){
+   let parent='';
+   for(let rr=ri-1;rr>=Math.max(0,ri-3);rr--){
+    const candidate=rowText(rr);
+    if(candidate[ci]==='DEPARTURE'||candidate[ci]==='ARRIVAL'){parent=candidate[ci];break;}
+    // A merged parent is only present in the first row; use the nearest PLACE cell as fallback.
+    if(candidate[ci]==='PLACE'){parent=ci<3?'DEPARTURE':'ARRIVAL';break;}
+   }
+   if(parent==='DEPARTURE')map.depTime=ci;
+   if(parent==='ARRIVAL')map.arrTime=ci;
+  }
+ }
+ const modern=rows.some(row=>(row||[]).some(v=>norm(v)==='SBH'));
+ Object.assign(map,{date:map.date??0,departure:map.departure??1,depTime:map.depTime??2,arrival:map.arrival??3,arrTime:map.arrTime??4,aircraftType:map.aircraftType??5,registration:map.registration??6,block:map.block??13,captain:map.captain??(modern?16:15),pic:map.pic??(modern?25:24),sic:map.sic??(modern?27:26),ifr:map.ifr??(modern?23:22),night:map.night??(modern?21:20),landDay:map.landDay??(modern?19:18),landNight:map.landNight??(modern?20:19),takeoffDay:map.takeoffDay??(modern?17:16),takeoffNight:map.takeoffNight??(modern?18:17),dual:map.dual??(modern?29:28),instructor:map.instructor??(modern?31:30),se:map.se??7,me:map.me??8,multiPilot:map.multiPilot??11,sbh:map.sbh??(modern?15:null)});
  return map;
 }
 function excelRowForFlight(f, rows){
- const date=String(f.date||'').slice(0,10);
- const norm=v=>String(v??'').trim().toUpperCase();
- const dateKey=v=>{const s=String(v??'').trim();let m=s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);if(m)return `${m[1]}-${m[2]}-${m[3]}`;m=s.match(/^(\\d{1,2})-(\\d{1,2})-(\\d{4})$/);if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return s};
- const matches=[];
- for(let i=0;i<rows.length;i++){
-  const r=rows[i]||[];
-  if(dateKey(r[0])!==date) continue;
-  if(norm(r[1])!==norm(f.departure)||norm(r[3])!==norm(f.arrival)) continue;
-  if(norm(r[5])!==norm(f.aircraftType)||norm(r[6])!==norm(f.registration)) continue;
-  matches.push({r,i});
- }
- if(matches.length===1) return matches[0].r;
+ const date=String(f.date||'').slice(0,10), norm=v=>String(v??'').trim().toUpperCase();
+ const dateKey=v=>excelDate(v)||String(v??'').trim();const m=excelColumnMap(rows);
+ // The source row is the authoritative link. Try it before fuzzy matching (same routes can repeat).
  const sourceRow=Number(f.sourceRow);
- if(sourceRow>0){
-  const exact=rows.find((r,i)=>i===sourceRow-1 &&
-   dateKey((r||[])[0])===date &&
-   norm((r||[])[1])===norm(f.departure) &&
-   norm((r||[])[3])===norm(f.arrival) &&
-   norm((r||[])[6])===norm(f.registration));
-  if(exact) return exact;
- }
- return matches[0]?.r || null;
+ if(sourceRow>0){const exact=rows[sourceRow-1];if(exact&&dateKey(exact[m.date])===date&&norm(exact[m.departure])===norm(f.departure)&&norm(exact[m.arrival])===norm(f.arrival))return exact;}
+ const matches=[];
+ for(let i=0;i<rows.length;i++){const r=rows[i]||[];if(dateKey(r[m.date])!==date)continue;if(norm(r[m.departure])!==norm(f.departure)||norm(r[m.arrival])!==norm(f.arrival))continue;if(norm(r[m.aircraftType])!==norm(f.aircraftType)||norm(r[m.registration])!==norm(f.registration))continue;matches.push({r,i})}
+ return matches[0]?.r||null;
 }
 function enrichCaptainData(data){
- const sheets=new Map((data.sheets||[]).map(sh=>[sh.name,sh.rows||[]]));
- for(const f of (data.flights||[])){
-  const rows=sheets.get(f.sourceSheet); if(!rows) continue;
-  const r=excelRowForFlight(f,rows); if(!r) continue;
-  const m=excelColumnMap(rows);
-  const val=k=>{const parsed=m[k]==null?0:excelMinutes(r[m[k]]);return parsed>0?parsed:(Number(f[k])||0)};
-  const captain=m.captain==null?'':String(r[m.captain]||'').trim();
-  f.captain=captain;
-  f.pic=val('pic'); f.sic=val('sic'); f.dual=val('dual'); f.instructor=val('instructor');
-  f.ifr=val('ifr'); f.night=val('night'); f.sbh=val('sbh');
-  f.se=String(r[m.se]??'').trim().toLowerCase()==='x'?(Number(f.block)||0):0;
-  f.me=String(r[m.me]??'').trim().toLowerCase()==='x'?(Number(f.block)||0):0;
-  f.multiPilotTime=m.multiPilotTime==null?(Number(f.multiPilotTime)||0):excelMinutes(r[m.multiPilotTime]);
-  f.takeoffDay=Number(r[m.takeoffDay]??0)||0; f.takeoffNight=Number(r[m.takeoffNight]??0)||0;
-  f.depTime=parseClock(r[m.depTime]); f.arrTime=parseClock(r[m.arrTime]);
-  if(!Number.isFinite(Number(f.landingsDay))) f.landingsDay=0; if(!Number.isFinite(Number(f.landingsNight))) f.landingsNight=0; f.landings=Number(f.landingsDay||0)+Number(f.landingsNight||0);
-  f.picus=(captain && !/^SELF$/i.test(captain) && Number(f.pic)>0)?Number(f.pic):0;
- }
+ // All flight fields in workbook-data.json are rebuilt and validated directly from the source workbook.
+ // Do not re-read raw sheet cells here: cached formulas and year-specific columns can overwrite verified values.
+ return;
 }
+
 function importFlightsFromWorkbook(data){
- let imported=[]; const seen=new Set(flights.map(f=>[f.date,f.departure,f.arrival,f.registration,Number(f.block)||0].join('|')));
- for(const sh of data.sheets||[]){if(!/^\\d{4}$/.test(sh.name)&&!/^Winter/i.test(sh.name))continue;
-  const rows=sh.rows||[],m=excelColumnMap(rows),at=(r,k,fb)=>r[m[k]??fb];
-  for(let ri=0;ri<rows.length;ri++){const r=rows[ri]||[],date=excelDate(at(r,'date',0)),dep=String(at(r,'departure',1)||'').trim().toUpperCase(),arr=String(at(r,'arrival',3)||'').trim().toUpperCase();
+ let imported=[];const seen=new Set(flights.map(f=>[f.date,f.departure,f.arrival,f.registration,Number(f.block)||0].join('|')));
+ for(const sh of data.sheets||[]){if(!/^\d{4}$/.test(sh.name)&&!/^Winter/i.test(sh.name))continue;const rows=sh.rows||[],m=excelColumnMap(rows);
+  for(let ri=0;ri<rows.length;ri++){const r=rows[ri]||[],date=excelDate(r[m.date]),dep=String(r[m.departure]||'').trim().toUpperCase(),arr=String(r[m.arrival]||'').trim().toUpperCase();
    if(!date||!dep||!arr||dep==='PLACE'||arr==='PLACE'||!/^([A-Z]{4})$/.test(dep)||!/^([A-Z]{4})$/.test(arr))continue;
-   const depTime=parseClock(at(r,'depTime',2)),arrTime=parseClock(at(r,'arrTime',4));let block=excelMinutes(at(r,'block',13));
-   if(!block&&depTime&&arrTime){let a=excelMinutes(arrTime),b=excelMinutes(depTime);block=a-b;if(block<0)block+=1440;}
-   if(!block)continue;
-   const registration=String(at(r,'registration',6)||'').trim(),key=[date,dep,arr,registration,block].join('|');if(seen.has(key))continue;seen.add(key);
-   const captain=String(at(r,'captain',Number(sh.name)>=2025?16:15)||'').trim(),pic=excelMinutes(at(r,'pic',Number(sh.name)>=2025?25:24)),sic=excelMinutes(at(r,'sic',Number(sh.name)>=2025?27:26)),landingsDay=Number(at(r,'landDay',Number(sh.name)>=2025?19:18))||0,landingsNight=Number(at(r,'landNight',Number(sh.name)>=2025?20:19))||0;
-   let takeoffDay=Number(at(r,'takeoffDay',Number(sh.name)>=2025?17:16))>0,takeoffNight=Number(at(r,'takeoffNight',Number(sh.name)>=2025?18:17))>0,night=excelMinutes(at(r,'night',Number(sh.name)>=2025?21:20));
-   if(depTime&&arrTime&&AIRPORT_COORDS[dep]&&AIRPORT_COORDS[arr]){try{const start=Date.parse(date+'T'+depTime+':00Z');let end=Date.parse(date+'T'+arrTime+':00Z');if(end<=start)end+=86400000;const sn=solarAltitude(new Date(start),...AIRPORT_COORDS[dep])<=-6,en=solarAltitude(new Date(end),...AIRPORT_COORDS[arr])<=-6;takeoffNight=sn;takeoffDay=!sn;if(!landingsDay&&!landingsNight){if(en)landingsNight=1;else landingsDay=1;}if(!night)night=estimateNightForFlight(date,dep,arr,depTime,arrTime);}catch(_){}}
-   imported.push({id:uid(),date,flightNumber:'',aircraftType:String(at(r,'aircraftType',5)||''),registration,departure:dep,arrival:arr,depTime,arrTime,captain,picus:captain&&!/^SELF$/i.test(captain)?pic:0,pic,sic,dual:excelMinutes(at(r,'dual',Number(sh.name)>=2025?29:28)),instructor:excelMinutes(at(r,'instructor',Number(sh.name)>=2025?31:30)),ifr:excelMinutes(at(r,'ifr',Number(sh.name)>=2025?23:22)),night,landings:landingsDay+landingsNight,landingsDay,landingsNight,takeoffDay,takeoffNight,se:([String(at(r,'se',7)||'').trim().toLowerCase()].includes('x')?block:0),me:([String(at(r,'me',8)||'').trim().toLowerCase()].includes('x')?block:0),multiPilotTime:excelMinutes(at(r,'multiPilotTime',11)),notes:[String(r[38]||'').trim(),String(r[41]||'').trim()].filter(Boolean).join(' · '),sbh:excelMinutes(at(r,'sbh',Number(sh.name)>=2025?15:14)),sourceSheet:sh.name,sourceRow:ri+1});
+   const depTime=parseClock(r[m.depTime]),arrTime=parseClock(r[m.arrTime]);let block=excelMinutes(r[m.block]);if(!block&&depTime&&arrTime){block=excelMinutes(arrTime)-excelMinutes(depTime);if(block<0)block+=1440}if(!block)continue;
+   const registration=String(r[m.registration]||'').trim(),key=[date,dep,arr,registration,block].join('|');if(seen.has(key))continue;seen.add(key);
+   const captain=String(r[m.captain]||'').trim(),pic=excelMinutes(r[m.pic]),sic=excelMinutes(r[m.sic]),picus=captain&&!/^SELF$/i.test(captain)&&pic>0?pic:0;
+   let takeoffsDay=Number(r[m.takeoffDay])||0,takeoffsNight=Number(r[m.takeoffNight])||0,landingsDay=Number(r[m.landDay])||0,landingsNight=Number(r[m.landNight])||0,night=excelMinutes(r[m.night]);let takeoffDay=takeoffsDay>0,takeoffNight=takeoffsNight>0;
+   if(depTime&&arrTime&&AIRPORT_COORDS[dep]&&AIRPORT_COORDS[arr]){try{const start=Date.parse(date+'T'+depTime+':00Z');let end=Date.parse(date+'T'+arrTime+':00Z');if(end<=start)end+=86400000;const sn=solarAltitude(new Date(start),...AIRPORT_COORDS[dep])<=-6,en=solarAltitude(new Date(end),...AIRPORT_COORDS[arr])<=-6;if(!takeoffDay&&!takeoffNight){takeoffNight=sn;takeoffDay=!sn}if(!landingsDay&&!landingsNight){landingsNight=en?1:0;landingsDay=en?0:1}if(!night)night=estimateNightForFlight(date,dep,arr,depTime,arrTime)}catch(_){}}
+   imported.push({id:uid(),date,flightNumber:'',aircraftType:String(r[m.aircraftType]||''),registration,departure:dep,arrival:arr,depTime,arrTime,block,captain,picus,pic,sic,se:String(r[m.se]??'').trim().toLowerCase()==='x'?block:excelMinutes(r[m.se]),me:String(r[m.me]??'').trim().toLowerCase()==='x'?block:excelMinutes(r[m.me]),multiPilot:excelMinutes(r[m.multiPilot]),ifr:excelMinutes(r[m.ifr]),night,landings:landingsDay+landingsNight,landingsDay,landingsNight,takeoffDay,takeoffNight,takeoffsDay,takeoffsNight,rolePIC:pic>0,roleCOPILOT:sic>0,roleDUAL:excelMinutes(r[m.dual])>0,roleINSTRUCTOR:excelMinutes(r[m.instructor])>0,dual:excelMinutes(r[m.dual]),instructor:excelMinutes(r[m.instructor]),notes:[String(r[38]||'').trim(),String(r[41]||'').trim()].filter(Boolean).join(' · '),sbh:excelMinutes(r[m.sbh]),sourceSheet:sh.name,sourceRow:ri+1});
   }
  }
  return imported;
 }
 async function initWorkbook(){
  try{
-  const importVersion='14';
+  const importVersion='19';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=14',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=19',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
   // Rebuild workbook-derived records on import-version changes; repair previously imported rows whose captain and role times were missing. Keep manually added flights and valid manually corrected positive times.
   const oldById=new Map(flights.map(f=>[f.id,f]));
   enrichCaptainData(workbookData);
-  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};const keep=(k)=>Number(old[k])>0?old[k]:f[k];return {...old,...f,id:f.id||old.id||uid(),captain:f.captain||old.captain||'',picus:(f.captain&&!/^SELF$/i.test(f.captain.trim())&&Number(f.pic)>0)?Number(f.pic):0,pic:keep('pic'),sic:keep('sic'),dual:keep('dual'),instructor:keep('instructor'),ifr:keep('ifr'),night:keep('night'),sbh:keep('sbh'),landings:Number(f.landings)||Number(old.landings)||0,landingsDay:Number(f.landingsDay)||Number(old.landingsDay)||0,landingsNight:Number(f.landingsNight)||Number(old.landingsNight)||0}});
+  const refreshed=workbookData.flights.map(f=>{const old=oldById.get(f.id)||{};return {...old,...f,id:f.id||old.id||uid(),captain:f.captain??old.captain??'',depTime:f.depTime??'',arrTime:f.arrTime??'',se:Number(f.se)||0,me:Number(f.me)||0,multiPilot:Number(f.multiPilot)||0,picus:(f.captain&&!/^SELF$/i.test(String(f.captain).trim())&&Number(f.pic)>0)?Number(f.pic):0,pic:Number(f.pic)||0,sic:Number(f.sic)||0,rolePIC:Number(f.pic)>0,roleCOPILOT:Number(f.sic)>0,dual:Number(f.dual)||0,instructor:Number(f.instructor)||0,ifr:Number(f.ifr)||0,night:Number(f.night)||0,sbh:Number(f.sbh)||0,takeoffsDay:Number(f.takeoffsDay)||0,takeoffsNight:Number(f.takeoffsNight)||0,takeoffDay:!!f.takeoffDay,takeoffNight:!!f.takeoffNight,landings:Number(f.landings)||0,landingsDay:Number(f.landingsDay)||0,landingsNight:Number(f.landingsNight)||0}});
   const sourceIds=new Set(refreshed.map(f=>f.id));
-  const sourceKeys=new Set(refreshed.map(f=>[f.date,f.departure,f.arrival,f.registration,Number(f.block)||0].join('|')));
-  const manual=flights.filter(f=>!f.sourceSheet&&!sourceIds.has(f.id)&&!sourceKeys.has([f.date,f.departure,f.arrival,f.registration,Number(f.block)||0].join('|')));
+  const manual=flights.filter(f=>!f.sourceSheet&&!sourceIds.has(f.id));
   flights=[...refreshed,...manual];
   localStorage.setItem(KEY,JSON.stringify(flights));
   await durableWrite();
