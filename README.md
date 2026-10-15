@@ -1,16 +1,14 @@
-# Pilot Logbook v2.2.36 — naprawa duplikatów i SBH dnia
+# Pilot Logbook v2.2.37 — poprawka BLOCK z maila i SBH w Historii
 
-W tej wersji:
-- wpisy z importu mailowego dopasowane do lotów z Excela (ta sama data, trasa i rejestracja) są scalane zamiast wyświetlane jako duplikaty;
-- zachowane zostają numer lotu i identyfikator źródłowy z maila;
-- czas BLOCK i SBH z Excela pozostają wartościami nadrzędnymi;
-- loty występujące tylko w imporcie mailowym pozostają w historii, a ich SBH nadal sumuje się na poziomie dnia;
-- odświeżenie danych wymusza ponowny import `workbook-data.json` (import version 22).
+- Jeśli lot z Excela ma BLOCK równy 0, a dopasowany lot z importu mailowego ma poprawny BLOCK obliczony z OnBlock − OffBlock, aplikacja zachowuje wartość z maila.
+- Loty z Excela nie pokazują już indywidualnego kafelka SBH, aby suma SBH dnia nie była powielona przy jednym z sektorów. Suma pozostaje w nagłówku grupy dnia.
+- Dla wpisów wyłącznie mailowych indywidualny SBH nadal jest widoczny, a nagłówek pokazuje sumę dnia.
+- Wersja importu Excela zwiększona do 23, aby wymusić ponowne zbudowanie i scalenie lokalnych danych.
 
 ## Wdrożenie
-1. Zrób kopię JSON z aplikacji.
-2. W GitHub podmień `index.html`, `sw.js` oraz `workbook-data.json` z tej paczki.
-3. Zapisz zmiany i poczekaj na publikację.
-4. Sprawdź wersję `v2.2.36`, a następnie dzień 2026-10-11 i 2026-10-13.
+1. Zrób eksport JSON z aplikacji jako kopię bezpieczeństwa.
+2. Podmień w GitHub tylko `index.html` i `sw.js`. Nie podmieniaj `workbook-data.json`.
+3. Zapisz zmiany, poczekaj na publikację i sprawdź wersję v2.2.37.
+4. Po uruchomieniu sprawdź daty 2026-10-13 i 2026-10-11.
 
-Uwaga: dopasowanie łączy rekordy z identyczną datą, trasą i rejestracją. Jeśli masz dwa rzeczywiście różne loty na tej samej trasie, tego samego dnia i tym samym samolotem, sprawdź je po wdrożeniu.
+Składnia JavaScript sprawdzona. Nie mam dostępu do lokalnej bazy przeglądarki, więc wynik należy potwierdzić po wdrożeniu.
