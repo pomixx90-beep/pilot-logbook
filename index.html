@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.38</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.39</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.38</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.39</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -134,7 +134,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.38: PICUS is a separate selectable function and never increments SIC.
+// v2.2.39: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -225,7 +225,7 @@ $('limit7').innerHTML=`<div style="border-radius:12px;padding:2px"><strong>Czas 
 let recent=sorted().slice(0,4);$('recent').innerHTML=recent.length?recent.map(f=>`<div class="flight recentFlight" role="button" tabindex="0" onclick="editFlight('${f.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editFlight('${f.id}')}"><div><div class="route">${esc(f.departure)} → ${esc(f.arrival)}</div><div class="meta">${esc(f.date)} · ${esc(f.flightNumber||'')}</div><div class="meta">Dotknij, aby otworzyć lot</div></div><div class="time">${fmt(f.block)}</div></div>`).join(''):'<div class="empty">Brak lotów. Dodaj pierwszy wpis.</div>';
 renderHistory()
 }
-function renderHistory(){let q=($('search')?.value||'').toLowerCase();let arr=sorted().filter(f=>[f.departure,f.arrival,f.flightNumber,f.registration,f.aircraftType,f.captain].join(' ').toLowerCase().includes(q));if(!arr.length){$('flightList').innerHTML='<div class="empty">Nie znaleziono lotów.</div>';return}const groups=new Map();for(const f of arr){const day=String(f.date||'Brak daty');if(!groups.has(day))groups.set(day,[]);groups.get(day).push(f)}$('flightList').innerHTML=[...groups.entries()].map(([day,items])=>{const dailySBH=items.reduce((n,f)=>n+(Number(f.sbh)||0),0);return `<div class="history-day"><div class="history-day-head"><span>${esc(day)} · ${items.length} ${items.length===1?'lot':'loty'}</span><span class="history-day-sbh">SBH dnia <strong>${fmt(dailySBH)}</strong></span></div>${items.map(flightHTML).join('')}</div>`}).join('')}
+function renderHistory(){let q=($('search')?.value||'').toLowerCase();let arr=sorted().filter(f=>[f.departure,f.arrival,f.flightNumber,f.registration,f.aircraftType,f.captain].join(' ').toLowerCase().includes(q));if(!arr.length){$('flightList').innerHTML='<div class="empty">Nie znaleziono lotów.</div>';return}const groups=new Map();for(const f of arr){const day=String(f.date||'Brak daty');if(!groups.has(day))groups.set(day,[]);groups.get(day).push(f)}$('flightList').innerHTML=[...groups.entries()].map(([day,items])=>{const hasMailSBH=items.some(f=>!!f.sourceId);const dailySBH=items.reduce((n,f)=>n+((!hasMailSBH||f.sourceId)?(Number(f.sbh)||0):0),0);return `<div class="history-day"><div class="history-day-head"><span>${esc(day)} · ${items.length} ${items.length===1?'lot':'loty'}</span><span class="history-day-sbh">SBH dnia <strong>${fmt(dailySBH)}</strong></span></div>${items.map(flightHTML).join('')}</div>`}).join('')}
 function clearForm(){ $('flightForm').reset();$('editId').value='';$('date').value=new Date().toISOString().slice(0,10);$('aircraftType').value='Boeing 737-800';$('captain').value='';$('picus').value='00:00';$('pic').value='00:00';$('sic').value='00:00';$('dual').value='00:00';$('instructor').value='00:00';$('ifr').value='00:00';$('night').value='00:00';$('block').value='';$('landingsInput').value='1';$('landingDay').checked=false;$('landingNight').checked=false;$('takeoffDay').checked=false;$('takeoffNight').checked=false;$('formTitle').textContent='Dodaj lot';$('cancelEdit').classList.add('hidden');syncAutoFields()}
 function editFlight(id){let f=flights.find(x=>x.id===id);if(!f)return;switchTab('add');$('editId').value=id;if(![...$('aircraftType').options].some(o=>o.value===f.aircraftType)){const opt=document.createElement('option');opt.value=f.aircraftType||'Nie podano';opt.textContent=f.aircraftType||'Nie podano';$('aircraftType').appendChild(opt)}for(let [k,v] of Object.entries({date:f.date,flightNumber:f.flightNumber,aircraftType:f.aircraftType,registration:f.registration,captain:f.captain||'',picus:fmt(f.picus||0),departure:f.departure,arrival:f.arrival,depTime:f.depTime||'',arrTime:f.arrTime||'',block:fmt(f.block),pic:fmt(f.pic),sic:fmt(f.sic),dual:fmt(f.dual||0),instructor:fmt(f.instructor||0),ifr:fmt(f.ifr),night:fmt(f.night),landingsInput:f.landings,notes:f.notes}))$(k).value=v;$('landingDay').checked=(+f.landingsDay||0)>0;$('landingNight').checked=(+f.landingsNight||0)>0;$('takeoffDay').checked=!!f.takeoffDay;$('takeoffNight').checked=!!f.takeoffNight;$('rolePIC').checked=!!f.rolePIC;$('roleCOPILOT').checked=!!f.roleCOPILOT;$('roleDUAL').checked=!!f.roleDUAL;$('roleINSTRUCTOR').checked=!!f.roleINSTRUCTOR;$('formTitle').textContent='Edytuj lot';$('cancelEdit').classList.remove('hidden');window.scrollTo(0,0)}
 function deleteFlight(id){if(!confirm('Usunąć ten wpis?'))return;flights=flights.filter(f=>f.id!==id);save()}
@@ -525,7 +525,7 @@ async function initWorkbook(){
       if(!match.flightNumber&&f.flightNumber)match.flightNumber=f.flightNumber;
       if(!match.sourceId&&f.sourceId)match.sourceId=f.sourceId;
       if(!(Number(match.block)>0)&&Number(f.block)>0)match.block=Number(f.block);
-      if(!(Number(match.sbh)>0)&&Number(f.sbh)>0)match.sbh=Number(f.sbh);
+      if(Number(f.sbh)>0&&Number(match.sbh)!==Number(f.sbh))match.sbh=Number(f.sbh);
       if(!match.depTime&&f.depTime)match.depTime=f.depTime;
       if(!match.arrTime&&f.arrTime)match.arrTime=f.arrTime;
       if(!match.scheduledSTD&&f.scheduledSTD)match.scheduledSTD=f.scheduledSTD;
