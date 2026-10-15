@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.41</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.42</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.41</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.42</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -134,7 +134,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.41: PICUS is a separate selectable function and never increments SIC.
+// v2.2.42: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -287,6 +287,20 @@ function parseClock(value){
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
  return '';
 }
+// v2.2.42: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
+function repairMissingVerifiedBlocks(){
+ let repaired=0;
+ for(const f of flights){
+  if(!f||!f.sourceId||f.sourceSheet||Number(f.block)>0)continue;
+  const dep=parseClock(f.depTime),arr=parseClock(f.arrTime);if(!dep||!arr)continue;
+  const toMin=t=>Number(t.slice(0,2))*60+Number(t.slice(3,5));
+  let diff=toMin(arr)-toMin(dep);if(diff<=0)diff+=1440;
+  if(diff>0&&diff<=1200){f.block=diff;repaired++;}
+ }
+ if(repaired){localStorage.setItem(KEY,JSON.stringify(flights));durableWrite();}
+ return repaired;
+}
+const repairedMailBlocksOnLoad=repairMissingVerifiedBlocks();
 function scheduledBlockMinutes(stdValue,staValue){const std=parseClock(stdValue),sta=parseClock(staValue);if(!std||!sta)return 0;const toMin=t=>Number(t.slice(0,2))*60+Number(t.slice(3,5));let diff=toMin(sta)-toMin(std);if(diff<=0)diff+=1440;return diff>0&&diff<=1200?diff:0}
 const CREW_CODE_KEY='pilot-logbook-crew-code-v1';
 function getCrewCode(){return String(localStorage.getItem(CREW_CODE_KEY)||'POMIWO').trim().toUpperCase()}
@@ -319,23 +333,8 @@ $('verifiedCsvFile').onchange=async e=>{try{
   if(!date||!fn||!dep||!arr){invalid++;continue}
   // Prefer actual block time calculated from OnBlock-OffBlock. TotalBlock can be empty, zero, or stale in the mail sheet.
   const clockMinutes=t=>t?Number(t.slice(0,2))*60+Number(t.slice(3,5)):NaN;
-  // Verified Flights exports sometimes format TotalBlock as H:MM:SS.
-  // minutes() accepts only H:MM, so parse duration formats separately as a reliable fallback.
-  const durationMinutes=value=>{
-    const v=String(value??'').trim();
-    if(!v||v==='-'||v==='—')return 0;
-    let m=v.match(/^(\d+):(\d{1,2})(?::(\d{1,2})(?:\.\d+)?)?$/);
-    if(m){const hh=Number(m[1]),mm=Number(m[2]),ss=Number(m[3]||0);if(mm>=60||ss>=60)return 0;return hh*60+mm+(ss>=30?1:0);}
-    const n=Number(v);if(Number.isFinite(n)&&n>0&&n<1)return Math.round(n*1440);
-    return 0;
-  };
-  let block=0;
-  if(depTime&&arrTime){
-    block=clockMinutes(arrTime)-clockMinutes(depTime);
-    if(block<=0)block+=1440;
-    if(block>1200)block=0;
-  }
-  if(block<=0)block=durationMinutes(blockText);
+  let block=0;if(depTime&&arrTime){block=clockMinutes(arrTime)-clockMinutes(depTime);if(block<=0)block+=1440;if(block>1200)block=0;}
+  if(block<=0&&blockText){try{block=minutes(blockText)}catch{block=0}}
   const ident=[date,fn.toUpperCase(),dep.toUpperCase(),arr.toUpperCase()].join('|');
   const normReg=v=>String(v??'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   // Match by stable ImportKey first, then same dated sector + normalized registration.
@@ -382,12 +381,12 @@ $('verifiedCsvFile').onchange=async e=>{try{
   // User rule: matching TakeOffPilot = PIC + PICUS when another captain is recorded.
   // Non-matching TakeOffPilot = Co-pilot/SIC only, never PICUS.
   const isPICUS=isPIC && !!captain && !/^SELF$/i.test(String(captain).trim());
-  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,scheduledSTD:parseClock(scheduledSTD),scheduledSTA:parseClock(scheduledSTA),sbh,picus:isPICUS?block:0,pic:isPIC?block:0,sic:isCOPILOT?block:0,dual:0,instructor:0,ifr:(/^BOEING\s*737-(700|800|8200)$/i.test('Boeing 737-800')?block:0),night,rolePIC:isPIC,rolePICUS:isPICUS,roleCOPILOT:isCOPILOT,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`Crew Code: ${crewCode}`,`Matched TakeOffPilot: ${isPIC?'yes':'no'}`,`Matched LandingPilot: ${isCOPILOT?'yes':'no'}`,`PIC: ${isPIC?'yes (TakeOffPilot matches Crew Code)':'no'}`,`PICUS: ${isPICUS?'yes (TakeOffPilot matches Crew Code and captain is not SELF)':'no'}`,`Co-pilot/SIC: ${isCOPILOT?'yes (TakeOffPilot differs from Crew Code)':'no'}`,`Role match debug: configured=${crewCode||'(empty)'}; takeoff=${takeoffCode||'(empty)'}; landing=${landingCode||'(empty)'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
+  const flight={id:uid(),sourceId,date,flightNumber:fn,aircraftType:'Boeing 737-800',registration:val(r,'Registration','Reg'),captain,departure:depCode,arrival:arrCode,depTime,arrTime,block,scheduledSTD:parseClock(scheduledSTD),scheduledSTA:parseClock(scheduledSTA),sbh,picus:isPICUS?block:0,pic:isPIC?block:0,sic:isCOPILOT?block:0,dual:0,instructor:0,ifr:(/^BOEING\s*737-(700|800|8200)$/i.test('Boeing 737-800')?block:0),night,rolePIC:isPIC,rolePICUS:isPICUS,roleCOPILOT:isCOPILOT,roleDUAL:false,roleINSTRUCTOR:false,landings:1,landingsDay,landingsNight,takeoffDay,takeoffNight,notes:['Imported from Verified Flights',`Crew Code: ${crewCode}`,`Matched TakeOffPilot: ${isPIC?'yes':'no'}`,`Matched LandingPilot: ${isCOPILOT?'yes':'no'}`,`PIC: ${isPIC?'yes (TakeOffPilot matches Crew Code)':'no'}`,`PICUS: ${isPICUS?'yes (TakeOffPilot matches Crew Code and captain is not SELF)':'no'}`,`Co-pilot/SIC: ${isCOPILOT?'yes (TakeOffPilot differs from Crew Code)':'no'}`,`Role match debug: configured=${crewCode||'(empty)'}; takeoff=${takeoffCode||'(empty)'}; landing=${landingCode||'(empty)'}`,`Pilot Flying: ${pilot||'not provided'}`,`Takeoff pilot: ${takeoffPilot||'not provided'}`,`Landing pilot: ${landingPilot||'not provided'}`,val(r,'CaptainRemarks','Captain Remarks'),val(r,'DelayTime1')?`Delay ${val(r,'DelayTime1')} code ${val(r,'DelayCode1')}`:'',val(r,'DelayTime2')?`Delay ${val(r,'DelayTime2')} code ${val(r,'DelayCode2')}`:'',val(r,'DelayTime3')?`Delay ${val(r,'DelayTime3')} code ${val(r,'DelayCode3')}`:''].filter(Boolean).join(' | ')};
   imported.push(flight);if(sourceId)existing.add(sourceId);identities.add(ident);
  }
- if(!imported.length){if(enriched>0)save();$('verifiedImportStatus').textContent=`Brak nowych lotów. Zaktualizowano istniejące wpisy (BLOCK/SBH/czasy): ${enriched}. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}
+ if(!imported.length){if(enriched>0)save();$('verifiedImportStatus').textContent=`Brak nowych lotów. Uzupełniono SBH w istniejących lotach: ${enriched}. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}.`;alert($('verifiedImportStatus').textContent);return}
  if(!confirm(`Dodać ${imported.length} nowych lotów? Pominięte duplikaty: ${skipped}. Nie zmieni to istniejących wpisów.`))return;
- flights.push(...imported);save();$('verifiedImportStatus').textContent=`Dodano ${imported.length} lotów. Zaktualizowano istniejące wpisy (BLOCK/SBH/czasy): ${enriched}. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}. BLOCK = OnBlock − OffBlock; TotalBlock jest zapasowym źródłem czasu.`;$('dataStatus').textContent=$('verifiedImportStatus').textContent;alert($('verifiedImportStatus').textContent);
+ flights.push(...imported);save();$('verifiedImportStatus').textContent=`Dodano ${imported.length} lotów. Uzupełniono SBH w istniejących lotach: ${enriched}. Pominięto duplikaty: ${skipped}; niepoprawne wiersze: ${invalid}. SBH obliczane jest jako STA − STD.`;$('dataStatus').textContent=$('verifiedImportStatus').textContent;alert($('verifiedImportStatus').textContent);
  }catch(err){alert('Błąd importu Verified Flights: '+(err.message||err))}finally{e.target.value=''}};
 function norm(s){return s.trim().toLowerCase().replaceAll('_',' ')}
 function parseDate(s){
