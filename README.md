@@ -1,7 +1,9 @@
-Pilot Logbook v2.2.42 — BLOCK repair
+Pilot Logbook v2.2.43 — różnica BLOCK i SBH
 
-Root cause fixed: the Verified Flights import created a flight object without a `block` property. This version stores the computed OffBlock-to-OnBlock duration on newly imported records.
+Zmiany:
+- W Historii pokazuje różnicę BLOCK − SBH pod kafelkami dla lotów z maila, które mają SBH.
+- Zielony kolor oznacza wynik ujemny (BLOCK krótszy niż SBH), czerwony dodatni (BLOCK dłuższy niż SBH), neutralny przy zerze.
+- W nagłówku każdego dnia pokazuje różnicę sumy BLOCK dnia minus SBH dnia.
+- Nie zmienia ani nie usuwa lotów i nie wymaga podmiany workbook-data.json.
 
-It also migrates existing email-imported records that have a sourceId, no workbook sourceSheet, saved depTime/arrTime, and missing/zero block. The duration is computed from those saved times (including crossing midnight, maximum 20 hours), then persisted to localStorage and IndexedDB.
-
-Deploy index.html and sw.js. Export a JSON backup first. Do not replace workbook-data.json for this repair. After deployment, open/reload the app; old affected records should be repaired on startup without needing to import again. Confirm visible version v2.2.42 and check 13 October sectors.
+Wdrożenie: przed zmianą wyeksportuj JSON. W GitHub podmień tylko index.html i sw.js, zatwierdź zmiany i sprawdź widoczną wersję v2.2.43.
