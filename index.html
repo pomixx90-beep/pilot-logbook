@@ -37,13 +37,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.21</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.22</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.21</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.22</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -132,7 +132,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.21: PICUS is a separate selectable function and never increments SIC.
+// v2.2.22: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -245,7 +245,10 @@ $('chooseCSV').onclick=()=>$('csvFile').click();
 $('csvFile').onchange=async e=>{try{let file=e.target.files[0];if(!file)return;let text=await file.text();let rows=parseCSV(text);if(!rows.length)throw Error('Plik jest pusty.');let hs=rows[0].map(norm);let idx=(...names)=>hs.findIndex(h=>names.includes(h));let di=idx('date','flight date','flightdate','data');if(di<0)throw Error('Brak kolumny Date/Data/FlightDate. Użyj importu „Importuj nowe Verified Flights” dla arkusza Verified Flights.');let get=(r,...names)=>{let i=idx(...names);return i>=0?(r[i]||'').trim():''};let newF=[];for(let n=1;n<rows.length;n++){let r=rows[n];if(!r.some(x=>x.trim()))continue;let raw=r[di];let d=parseDate(raw);if(!d)throw Error('Nieprawidłowa data w wierszu '+(n+1)+': '+raw);newF.push({id:uid(),date:d,flightNumber:get(r,'flight number','flight no','flight','numer lotu'),aircraftType:get(r,'aircraft type','type','aircraft','typ samolotu'),registration:get(r,'registration','reg','rejestracja'),departure:get(r,'departure','from','dep','odlot').toUpperCase(),arrival:get(r,'arrival','destination','to','arr','przylot').toUpperCase(),block:minutes(get(r,'block time','total time','total','block','czas lotu')),pic:minutes(get(r,'pic','pic time')),sic:minutes(get(r,'sic','copilot','co-pilot','sic time')),ifr:minutes(get(r,'ifr','ifr time')),night:minutes(get(r,'night','night time')),landings:Number(get(r,'landings','landing','ldg','lądowania')||1),notes:get(r,'notes','remarks','comments','uwagi')})}if(!newF.length)throw Error('Nie znaleziono wpisów do importu.');if(confirm(`Zaimportować ${newF.length} lotów? Wpisy zostaną dodane do istniejących.`)){flights.push(...newF);save();$('dataStatus').textContent=`Zaimportowano ${newF.length} lotów.`} }catch(err){alert('Błąd importu: '+err.message)}finally{e.target.value=''}};
 function parseClock(value){
  const v=String(value??'').trim();if(!v)return '';
- let m=v.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);if(m)return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
+ // Excel exports formatted times as e.g. '04:14 AM' or '05:38 PM'.
+ let m=v.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+ if(m){let h=Number(m[1])%12;if(m[4].toUpperCase()==='PM')h+=12;return `${String(h).padStart(2,'0')}:${m[2]}`;}
+ m=v.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);if(m)return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
  m=v.match(/^(\d{1,2})\.(\d{2})$/);if(m)return `${String(Number(m[1])).padStart(2,'0')}:${m[2]}`;
  const n=Number(v);if(Number.isFinite(n)&&n>=0&&n<1){const mins=Math.round(n*1440);return `${String(Math.floor(mins/60)%24).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;}
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
@@ -281,8 +284,8 @@ $('verifiedCsvFile').onchange=async e=>{try{
   const captain=val(r,'Captain');const pilot=String(val(r,'PilotFlying','Pilot Flying')).trim().toUpperCase();
   const takeoffPilot=String(val(r,'TakeOffPilot','Take Off Pilot')).trim().toUpperCase().replace(/\s+/g,'');
   const landingPilot=String(val(r,'LandingPilot','Landing Pilot')).trim().toUpperCase().replace(/\s+/g,'');
-  const offBlock=val(r,'OffBlock','Off Block','Off-block','OffBlockUTC');
-  const onBlock=val(r,'OnBlock','On Block','On-block','OnBlockUTC');
+  const offBlock=val(r,'OffBlock','Off Block','Off-block','OffBlockUTC','Off Block UTC','OffBlockTime','Off Block Time');
+  const onBlock=val(r,'OnBlock','On Block','On-block','OnBlockUTC','On Block UTC','OnBlockTime','On Block Time');
   const depTime=parseClock(offBlock),arrTime=parseClock(onBlock),depCode=dep.toUpperCase(),arrCode=arr.toUpperCase();
   let takeoffDay=false,takeoffNight=false,landingsDay=0,landingsNight=0;
   // Estimate day/night using the same civil-twilight rule as the manual form.

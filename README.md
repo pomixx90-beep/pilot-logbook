@@ -1,8 +1,5 @@
-# Pilot Logbook v2.2.21
+# Pilot Logbook v2.2.22 — Verified Flights time fix
 
-Reguła importu Verified Flights:
-- `TakeOffPilot` zgodny z ustawionym Crew Code: zaznacza PIC; jeśli dowódca jest inny niż `SELF`, zapisuje także PICUS równy block time.
-- `TakeOffPilot` inny niż Crew Code: zaznacza Co-pilot/SIC, bez PICUS.
-- `LandingPilot` nie wpływa na klasyfikację.
+Poprawia odczyt godzin z plików Excel, które zwracają czas w formacie 12-godzinnym, np. `04:14 AM` / `05:38 AM`. Importer normalizuje je do UTC `04:14` / `05:38`, a następnie wylicza przybliżony czas nocny oraz checkboxy dzień/noc startu i lądowania.
 
-Przed aktualizacją wyeksportuj kopię JSON. Wgraj `index.html` i `sw.js` do katalogu głównego repozytorium GitHub, zastępując poprzednie pliki.
+Wgraj `index.html` i `sw.js` do głównego katalogu repozytorium GitHub Pages. Przed aktualizacją wyeksportuj kopię JSON. Duplikaty nie są ponownie importowane; istniejące wpisy wymagają osobnej edycji, jeśli godziny są puste.
