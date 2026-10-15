@@ -1,5 +1,10 @@
-# Pilot Logbook v2.2.25
+Pilot Logbook v2.2.27 — JSON repair package
 
-Poprawka importu danych z arkuszy rocznych: rozpoznawanie pól SE, ME, Multi-pilot, PIC/Co-pilot, IFR, lądowań i startów dziennych/nocnych. Dashboard ponownie pokazuje czasy funkcji i warunków. Import ma wersję 13. Przy odświeżeniu usuwa z zestawu kopie lotów pochodzące ze starego importu, zachowując pozostałe wpisy ręczne.
+Contains:
+- index.html: increments app version and workbook import version to force re-import.
+- sw.js: cache version update.
+- workbook-data.json: repaired workbook-derived flight fields, including departure/arrival times, SE/ME, multi-pilot time, takeoffs and landings.
 
-Przed aktualizacją wyeksportuj kopię JSON. W GitHub podmień wyłącznie `index.html` oraz `sw.js`. Nie usuwaj ani nie podmieniaj `workbook-data.json`.
+Before replacing files, export a JSON backup from the app.
+Replace index.html, sw.js, and workbook-data.json in the GitHub repository. Commit all three together.
+This package preserves the 973 existing workbook flight IDs by source row identity but changes their IDs to force stale records to be refreshed. Manually created entries are intended to be retained by the app's source/manual filtering.
