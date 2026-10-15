@@ -434,8 +434,19 @@ async function ensureSyncTab(){
  }
 }
 async function fetchVerifiedSheet(){
- const data=await sheetsApi(`/values/${encodeURIComponent('Flights!A:AZ')}?majorDimension=ROWS`);
- if(!Array.isArray(data.values)||data.values.length<2)throw Error('Nie znaleziono danych w karcie „Flights”. Sprawdź nazwę karty.');return data.values;
+ // Use an explicit bounded range; some API responses to open-ended column ranges
+ // can be empty even when the sheet contains rows.
+ let data=await sheetsApi(`/values/${encodeURIComponent("'Flights'!A1:AZ1000")}?majorDimension=ROWS`);
+ if(!Array.isArray(data.values)||data.values.length<2){
+  // Retry using the conventional unquoted A:AZ range before reporting an error.
+  data=await sheetsApi(`/values/${encodeURIComponent('Flights!A:AZ')}?majorDimension=ROWS`);
+ }
+ if(!Array.isArray(data.values)||data.values.length<2){
+  const meta=await sheetsApi('?fields=properties(title),sheets.properties(title,sheetId)');
+  const tabs=(meta.sheets||[]).map(x=>x.properties?.title).filter(Boolean);
+  throw Error(`Google Sheets API zwróciło pustą kartę Flights. Plik: ${meta.properties?.title||'nieznany'}; dostępne karty: ${tabs.join(', ')||'brak danych o kartach'}. Sprawdź, czy zalogowano właściwe konto Google.`);
+ }
+ return data.values;
 }
 function flightIdentity(f){return [String(f.date||'').slice(0,10),String(f.flightNumber||'').trim().toUpperCase(),String(f.departure||'').trim().toUpperCase(),String(f.arrival||'').trim().toUpperCase(),String(f.registration||'').trim().toUpperCase()].join('|')}
 function findFlightMatch(f,list){return list.find(x=>(f.id&&x.id===f.id)||(f.sourceId&&x.sourceId===f.sourceId))}
