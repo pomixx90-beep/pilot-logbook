@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#101c2c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pilot Logbook">
+<meta name="apple-mobile-web-app-title" content="POMIWO logbook">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Pilot Logbook</title>
+<title>POMIWO logbook</title>
 <style>
 :root{--bg:#0b1420;--panel:#132236;--panel2:#192c43;--text:#f4f7fb;--muted:#a7b6c9;--line:#2a3c52;--accent:#7dc6ff;--danger:#ff8888;--ok:#91dfb3}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
@@ -33,17 +33,19 @@ form .row label{min-width:0}textarea{min-height:70px}.role-grid{display:grid;gri
 hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!important}
 #sheetTable{border-collapse:collapse;font-size:12px;white-space:nowrap;min-width:100%}#sheetTable th,#sheetTable td{border:1px solid var(--line);padding:7px 9px;text-align:left;max-width:260px;overflow:hidden;text-overflow:ellipsis}#sheetTable th{background:#20344b;position:sticky;top:0;z-index:1}#sheetTable td{background:#0b1726}#sheetTable .rownum{background:#20344b;color:var(--muted);position:sticky;left:0;z-index:1}#sheetTable th:first-child{left:0;z-index:2}
 .tablewrap{overflow:auto;max-width:100%;margin-top:8px}.statTable{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}.statTable th,.statTable td{padding:8px;border:1px solid var(--line);text-align:left}.statTable th{background:#20344b;position:sticky;top:0}.panel h3{font-size:15px;margin:2px 0 8px}.panel{margin-bottom:10px}footer{color:var(--muted);font-size:11px;padding:20px 4px;line-height:1.5}.report-tabs{display:flex;gap:7px;overflow-x:auto;padding:3px 0 12px;margin:8px 0;scrollbar-width:thin}.report-tabs button{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:10px 14px;background:#1b1d21;color:var(--muted);font-weight:650}.report-tabs button.active{background:#f4f7fb;color:#101820;border-color:#f4f7fb}.report-pane{display:none}.report-pane.active{display:block}.report-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.report-cards .card{min-width:0}.report-cards .value{font-size:22px}.statTable a{color:var(--accent);font-weight:650;text-decoration:none}
+
+.app-header{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;padding-right:14px}.header-title{flex:1 1 230px;min-width:0}.header-title h1{font-size:23px}.header-add{flex:0 0 auto;margin-left:auto;background:var(--accent);color:#07111c;border:0;border-radius:11px;padding:10px 12px;font-weight:800;white-space:nowrap}.app-header .refreshBtn{flex:0 0 auto;margin-top:0}#pullRefreshHint{display:none;flex-basis:100%;text-align:center;color:var(--accent);font-size:12px;padding:3px 0 0}#pullRefreshHint.visible{display:block}@media(max-width:430px){.app-header{gap:8px}.header-title h1{font-size:20px}.header-add{padding:9px 10px;font-size:13px}.app-header .refreshBtn{font-size:12px;padding:7px 9px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header><h1>✈ Pilot Logbook <span class="version" id="appVersion">v2.2.43</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button></header>
+<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.44</span></h1><p>Twój dziennik lotów · dane zapisywane na tym urządzeniu</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
 <nav>
-<button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="add">＋ Dodaj lot</button><button data-tab="data">Import / eksport</button>
+<button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.43</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.44</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -128,13 +130,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>Pilot Logbook · wersja aplikacji v2.1 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
+<footer>POMIWO logbook · wersja aplikacji v2.2.44 · lokalny prototyp. Zapisuj regularnie kopie zapasowe. Dane nie są wysyłane na serwer.</footer>
 </main>
 <script>
 const KEY='pilot-logbook-flights-v1';
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.43: PICUS is a separate selectable function and never increments SIC.
+// v2.2.44: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -288,7 +290,7 @@ function parseClock(value){
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
  return '';
 }
-// v2.2.43: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
+// v2.2.44: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
 function repairMissingVerifiedBlocks(){
  let repaired=0;
  for(const f of flights){
@@ -583,6 +585,14 @@ async function initWorkbook(){
 clearForm();
 (async()=>{await restoreDurableIfNeeded();render();await initWorkbook()})();
 $('refreshApp').addEventListener('click',async()=>{try{if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.update();}}catch(e){}location.href=location.pathname+'?refresh='+Date.now()});
+$('headerAddFlight').addEventListener('click',()=>switchTab('add'));
+// iPhone pull-to-refresh: only trigger when the page is already at the very top.
+let pullStartY=0,pullEligible=false,pullTriggered=false;
+const pullHint=$('pullRefreshHint');
+document.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;pullStartY=e.touches[0].clientY;pullEligible=(window.scrollY<=0);pullTriggered=false;},{passive:true});
+document.addEventListener('touchmove',e=>{if(!pullEligible||pullTriggered||e.touches.length!==1)return;const distance=e.touches[0].clientY-pullStartY;if(distance>65){pullHint.classList.add('visible');pullTriggered=true;}else if(distance>15){pullHint.classList.add('visible');pullHint.textContent='Przeciągnij niżej, aby odświeżyć';}else{pullHint.classList.remove('visible');}},{passive:true});
+document.addEventListener('touchend',()=>{if(pullTriggered){pullHint.textContent='Odświeżanie…';setTimeout(()=>{const b=$('refreshApp');if(b)b.click();},80);}else{pullHint.classList.remove('visible');pullHint.textContent='Puść, aby odświeżyć';}pullEligible=false;},{passive:true});
+
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{}));
 </script>
 </body></html>

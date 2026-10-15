@@ -1,9 +1,11 @@
-Pilot Logbook v2.2.43 — różnica BLOCK i SBH
+# POMIWO logbook v2.2.44
 
 Zmiany:
-- W Historii pokazuje różnicę BLOCK − SBH pod kafelkami dla lotów z maila, które mają SBH.
-- Zielony kolor oznacza wynik ujemny (BLOCK krótszy niż SBH), czerwony dodatni (BLOCK dłuższy niż SBH), neutralny przy zerze.
-- W nagłówku każdego dnia pokazuje różnicę sumy BLOCK dnia minus SBH dnia.
-- Nie zmienia ani nie usuwa lotów i nie wymaga podmiany workbook-data.json.
+- nazwa aplikacji zmieniona na POMIWO logbook; manifest PWA z nazwą POMIWO,
+- przycisk „＋ Dodaj lot” przeniesiony do prawego górnego rogu nagłówka,
+- gest przeciągnięcia w dół na iPhonie od samej góry strony uruchamia odświeżenie aplikacji,
+- zwiększona wersja aplikacji i cache service workera.
 
-Wdrożenie: przed zmianą wyeksportuj JSON. W GitHub podmień tylko index.html i sw.js, zatwierdź zmiany i sprawdź widoczną wersję v2.2.43.
+Wdrożenie: przed zmianą wyeksportuj JSON. W GitHub podmień `index.html`, `sw.js` i `manifest.json`. Nie zmieniaj `workbook-data.json`. Zachowuje to poprawki BLOCK/SBH z v2.2.43.
+
+Po wdrożeniu na iPhonie odśwież stronę. Jeśli aplikacja jest dodana do ekranu początkowego, zamknij ją i uruchom ponownie, aby iOS pobrał nową nazwę manifestu.
