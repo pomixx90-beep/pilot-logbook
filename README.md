@@ -1,9 +1,12 @@
-# POMIWO Logbook v2.2.76 — poprawka synchronizacji
+# POMIWO Logbook v2.2.77 — poprawka lotniska i trwałej synchronizacji
 
-Zmiany:
-- Poprawiono błędny kod lotniska `LPDPL` na `LDPL` w źródłowych danych Excela i wbudowanym fallbacku.
-- Podbito wersję importu danych do 37, aby aplikacja przebudowała dane z poprawionego źródła i zachowała nakładki z maili.
-- Podbito nazwę cache Service Workera.
-- Usunięto z listy pre-cache ikonki, których nie było w paczce; poprzedni `cache.addAll()` mógł przez to odrzucać instalację Service Workera.
+## Poprawki
+- Widoczna wersja w nagłówku, podsumowaniu i stopce to teraz `v2.2.77`.
+- Błędny kod z maila `LPDPL` jest normalizowany do `LDPL` przy imporcie, normalizacji lokalnych rekordów, odczycie rekordów chmurowych i budowaniu danych z Excela.
+- Rekord z 09.06.2025 (`LDPL → EPPO`, SP-RSS) dopasowuje się do wiersza Excela zamiast tworzyć osobny lot z literówką. Źródłowy BLOCK pozostaje 1:40.
+- Dane z aktualnie odczytanej karty `Flights` mają pierwszeństwo nad starszym ładunkiem `LogbookSync` dla tego samego ImportKey.
+- Po scaleniu aplikacja zapisuje zaktualizowany `PayloadJSON` do istniejących wierszy `LogbookSync`, aby kolejna synchronizacja/odświeżenie nie przywracały starej trasy ani starych pól.
+- Zwiększono wersję importu do `38` i cache Service Workera do `pomiwo-logbook-v2.2.77`. Przycisk odświeżania czeka na aktywację aktualizacji Service Workera.
 
-Wdrożenie: wgraj wszystkie pliki z folderu paczki do tego samego katalogu na hostingu, nadpisując istniejące. Nie wgrywaj tylko `index.html` — wymagane są również `workbook-data.json` i `sw.js`. Następnie zamknij aplikację i otwórz ją ponownie online. Po synchronizacji sprawdź, czy lot z 09.06.2025 ma trasę `LDPL → EPPO` i BLOCK `1:40`, a po odświeżeniu dane pozostają.
+## Wdrożenie
+Wgraj wszystkie pliki z tego folderu do katalogu głównego aplikacji, nadpisując: `index.html`, `workbook-data.json`, `sw.js`, `manifest.json`. Po wdrożeniu otwórz aplikację online, sprawdź plakietkę `v2.2.77`, wykonaj synchronizację i ponownie odśwież stronę. W przypadku Google Sheets aktualizacja zapisuje też poprawioną treść do karty `LogbookSync`.

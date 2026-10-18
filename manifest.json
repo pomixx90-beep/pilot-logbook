@@ -2,7 +2,7 @@
   "id": "./",
   "name": "POMIWO logbook",
   "short_name": "POMIWO",
-  "description": "POMIWO logbook — dziennik lotów",
+  "description": "POMIWO logbook v2.2.77 — dziennik lotów",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
