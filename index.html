@@ -153,6 +153,7 @@ async function restoreDurableIfNeeded(){try{const local=loadFlights();const db=a
 function save(){try{localStorage.setItem(KEY,JSON.stringify(flights));}catch(e){alert('Nie udało się zapisać danych w Safari. Wyeksportuj kopię JSON i sprawdź miejsce na urządzeniu.');console.error(e)}durableWrite();render();if(googleAccessToken&&!cloudSyncInProgress)scheduleCloudSync()}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function minutes(v){v=String(v||'0:00').trim().replace(',','.');if(!v)return 0;if(v.includes(':')){let p=v.split(':');if(p.length!==2||!/^\d+$/.test(p[0])||!/^\d{1,2}$/.test(p[1])||+p[1]>=60)throw Error('Nieprawidłowy czas: '+v);return +p[0]*60 + +p[1]}let n=Number(v);if(!Number.isFinite(n)||n<0)throw Error('Nieprawidłowy czas: '+v);return Math.round(n*60)}
+function emailBlockMatchesTimes(depTime,arrTime,block){const clock=t=>{const m=String(t||'').match(/^(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):NaN;};const dep=clock(depTime),arr=clock(arrTime);if(!Number.isFinite(dep)||!Number.isFinite(arr)||!(Number(block)>0))return false;let elapsed=arr-dep;if(elapsed<0)elapsed+=1440;return elapsed>0&&Math.abs(elapsed-Number(block))<=2;}
 function fmt(n){n=Math.max(0,Math.round(n||0));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')}
 function diffHTML(block,sbh){const d=Math.round((Number(block)||0)-(Number(sbh)||0));const cls=d<0?'negative':d>0?'positive':'zero';const label=(d>0?'+':'')+String(d)+' min';return `<span class="time-difference ${cls}">${label}</span>`}
 function dateObj(s){return new Date(s+'T12:00:00')}
@@ -405,7 +406,7 @@ async function processVerifiedRows(rows, sourceLabel='Verified Flights', options
     if(dep && String(old.departure||'').trim().toUpperCase()!==dep.toUpperCase()){old.departure=dep.toUpperCase();changed=true;}
     if(arr && String(old.arrival||'').trim().toUpperCase()!==arr.toUpperCase()){old.arrival=arr.toUpperCase();changed=true;}
     if(date && String(old.date||'').slice(0,10)!==date){old.date=date;changed=true;}
-    if(block>0&&Number(old.block)!==block){old.block=block;changed=true;}
+    if(block>0&&Number(old.block)!==block){if(!old.sourceSheet||!(Number(old.block)>0)||emailBlockMatchesTimes(depTime,arrTime,block)){old.block=block;changed=true;}}
     if(sourceId&&old.sourceId!==sourceId){old.sourceId=sourceId;changed=true;}
     if(fn&&old.flightNumber!==fn){old.flightNumber=fn;changed=true;}
     if(val(r,'Registration','Reg')&&old.registration!==val(r,'Registration','Reg')){old.registration=val(r,'Registration','Reg');changed=true;}
@@ -539,7 +540,7 @@ function mergeFlightPreferSource(target,source){
  const emailTarget=!!target.sourceId&&!target.sourceSheet;
  const excelSource=!!source.sourceSheet;
  const fields=['sourceId','flightNumber','registration','departure','arrival','captain','depTime','arrTime','scheduledSTD','scheduledSTA','block','sbh','sectorSBH','pic','picus','sic','dual','instructor','ifr','night','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight','takeoffDay','takeoffNight','rolePIC','rolePICUS','roleCOPILOT','roleDUAL','roleINSTRUCTOR','notes'];
- for(const k of fields){if(target.sourceSheet&&['sbh','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight','takeoffDay','takeoffNight'].includes(k))continue;if(!Object.prototype.hasOwnProperty.call(source,k)||source[k]===null||source[k]===undefined)continue;const v=(k==='captain'&&source[k])?formatCaptainName(source[k]):source[k];if(typeof v==='string'&&!v.trim())continue;if(['block','sbh'].includes(k)&&!(Number(v)>0))continue;if(target.sourceSheet&&['pic','picus','sic','dual','instructor','ifr','night'].includes(k)&&Number(v)===0&&Number(target[k])>0)continue;if(emailTarget&&excelSource&&target[k]!==undefined&&target[k]!==null&&target[k]!==''&&!(typeof target[k]==='number'&&target[k]===0))continue;target[k]=v;}
+ for(const k of fields){if(target.sourceSheet&&['sbh','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight','takeoffDay','takeoffNight'].includes(k))continue;if(!Object.prototype.hasOwnProperty.call(source,k)||source[k]===null||source[k]===undefined)continue;const v=(k==='captain'&&source[k])?formatCaptainName(source[k]):source[k];if(typeof v==='string'&&!v.trim())continue;if(['block','sbh'].includes(k)&&!(Number(v)>0))continue;if(k==='block'&&target.sourceSheet&&source.sourceId&&Number(target.block)>0&&!emailBlockMatchesTimes(source.depTime,source.arrTime,v))continue;if(target.sourceSheet&&['pic','picus','sic','dual','instructor','ifr','night'].includes(k)&&Number(v)===0&&Number(target[k])>0)continue;if(emailTarget&&excelSource&&target[k]!==undefined&&target[k]!==null&&target[k]!==''&&!(typeof target[k]==='number'&&target[k]===0))continue;target[k]=v;}
  return target;
 }
 function dedupeLocalFlights(){
@@ -916,13 +917,13 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='35';
+  const importVersion='36';
   // Excel JSON is the source of truth: rebuild workbook rows on every launch.
   // Keep only mail-imported overlays and manually created records from local history.
   // Prefer the standalone JSON on a web server; for file:// local opening, fetch is blocked by browser security.
   // The exact same source JSON is embedded in this package as a local fallback.
   try{
-   const res=await fetch('./workbook-data.json?import=35',{cache:'no-store'});
+   const res=await fetch('./workbook-data.json?import=36',{cache:'no-store'});
    if(!res.ok)throw Error('Nie można odczytać danych Excela.');
    workbookData=await res.json();
   }catch(fetchError){

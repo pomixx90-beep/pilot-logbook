@@ -1,7 +1,9 @@
-POMIWO Logbook v2.2.73 — naprawa uzupełniania SBH po ponownym imporcie maili
+# POMIWO Logbook v2.2.75 — mail BLOCK + persistence fix
 
-- Każdy sektor z maila zapisuje SBH jako sectorSBH, niezależnie od tego, czy dopasowano go do wiersza Excela.
-- Ponowny import aktualizuje sectorSBH również w istniejącym rekordzie Excelowym, bez nadpisywania dziennego SBH Excela.
-- W historii SBH sektora wyświetla się przy locie; nagłówek dnia pokazuje dzienny SBH z Excela, a jeśli go nie ma, sumę SBH sektorów z maili.
+Zmiany:
+- Import z Verified Flights nie nadpisuje BLOCK w rekordzie z Excela wartością e-mail, jeśli BLOCK nie zgadza się z różnicą OffBlock–OnBlock (tolerancja 2 min).
+- Ta sama walidacja działa podczas scalania z Google Sheets, żeby stara wartość chmurowa nie przywracała błędnego czasu.
+- Podniesiono wersję cache Service Workera i numer importu danych, aby wymusić odświeżenie zasobów aplikacji.
+- Zachowano istniejące reguły dopasowywania lotów i importu SBH.
 
-Ważne: otwórz ZIP w nowym folderze. Aby uzupełnić starsze rekordy, zaimportuj ponownie maile, które zawierają te loty.
+Wdrożenie: zastąp pliki aplikacji zawartością tego archiwum. Jeśli aplikacja była zainstalowana jako PWA, otwórz ją online i użyj przycisku Odśwież aplikację, a następnie wykonaj synchronizację ponownie.
