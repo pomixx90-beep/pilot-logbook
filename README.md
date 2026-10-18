@@ -1,9 +1,9 @@
-# POMIWO Logbook v2.2.75 — mail BLOCK + persistence fix
+# POMIWO Logbook v2.2.76 — poprawka synchronizacji
 
 Zmiany:
-- Import z Verified Flights nie nadpisuje BLOCK w rekordzie z Excela wartością e-mail, jeśli BLOCK nie zgadza się z różnicą OffBlock–OnBlock (tolerancja 2 min).
-- Ta sama walidacja działa podczas scalania z Google Sheets, żeby stara wartość chmurowa nie przywracała błędnego czasu.
-- Podniesiono wersję cache Service Workera i numer importu danych, aby wymusić odświeżenie zasobów aplikacji.
-- Zachowano istniejące reguły dopasowywania lotów i importu SBH.
+- Poprawiono błędny kod lotniska `LPDPL` na `LDPL` w źródłowych danych Excela i wbudowanym fallbacku.
+- Podbito wersję importu danych do 37, aby aplikacja przebudowała dane z poprawionego źródła i zachowała nakładki z maili.
+- Podbito nazwę cache Service Workera.
+- Usunięto z listy pre-cache ikonki, których nie było w paczce; poprzedni `cache.addAll()` mógł przez to odrzucać instalację Service Workera.
 
-Wdrożenie: zastąp pliki aplikacji zawartością tego archiwum. Jeśli aplikacja była zainstalowana jako PWA, otwórz ją online i użyj przycisku Odśwież aplikację, a następnie wykonaj synchronizację ponownie.
+Wdrożenie: wgraj wszystkie pliki z folderu paczki do tego samego katalogu na hostingu, nadpisując istniejące. Nie wgrywaj tylko `index.html` — wymagane są również `workbook-data.json` i `sw.js`. Następnie zamknij aplikację i otwórz ją ponownie online. Po synchronizacji sprawdź, czy lot z 09.06.2025 ma trasę `LDPL → EPPO` i BLOCK `1:40`, a po odświeżeniu dane pozostają.
