@@ -1,10 +1,7 @@
-POMIWO Logbook v2.2.67
+POMIWO Logbook v2.2.68 — poprawka SBH
 
-Naprawy:
-- Usunięto specjalny filtr odrzucający loty z 2026-10-13 przy odczycie LogbookSync.
-- Usunięto czyszczenie lokalnych wpisów z 2026-10-13 podczas importu Excela. Brak lotów w JSON oznacza tylko brak bazowych wpisów Excelowych, a nie zakaz importu z e-maila.
-- Podniesiono importVersion i cache key, aby uruchomić przebudowę danych.
+Naprawa: SBH z Excela jest dzienną wartością zapisaną przy jednym sektorze. Nie jest już nadpisywane przez SBH liczone z maila jako STA−STD, gdy aktualizowany rekord pochodzi z Excela. Mail nadal aktualizuje inne pola, w tym numer lotu i block. SBH dla wpisów mailowych bez odpowiednika w Excelu nadal jest liczone z STA−STD.
 
-Statystyki źródłowe wymagają dalszej weryfikacji na Twoim rzeczywistym stanie danych: osadzony JSON ma 964 rekordy, sumę BLOCK 129719 min (2151:59), podczas gdy metadane wskazują expectedSourceTotalMinutes=131011 i importedRowsTotalMinutes=130638. To rozbieżność już w danych źródłowych/konwersji i nie należy jej maskować stałą korektą.
+Wersja importu podniesiona do 33, by odbudować historię z osadzonego JSON-a. JSON i pusty dzień 13.10 są zachowane.
 
-Rozpakuj do nowego folderu i otwórz index.html. Wpisy z e-maila z 13.10 mogą być importowane nawet jeśli JSON Excela nie zawiera tej daty.
+Uwaga: nie wprowadzono sztucznej korekty nalotu. Po wdrożeniu porównaj nalot całkowity z ręcznym logbookiem; rozbieżność 2:21 wymaga osobnego wskazania rekordów, których block różni się między Excelem i importem e-mail.
