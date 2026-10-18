@@ -1,16 +1,15 @@
-POMIWO logbook v2.2.52 — naprawa importu lotów z 11.10.2026
+POMIWO logbook v2.2.53 — poprawka sesji Google
 
-Co poprawiono:
-- usunięto filtr blokujący import daty 2026-10-11 z karty Flights;
-- usunięto automatyczne kasowanie lokalnych lotów z tej daty;
-- usunięto automatyczne kasowanie wierszy z datą 2026-10-11 z karty LogbookSync;
-- podbito wersję cache Service Workera do v2.2.52.
+Zmiany:
+- Po otwarciu aplikacja próbuje wznowić sesję Google bez ponownego wymuszania ekranu zgody.
+- Przycisk synchronizacji najpierw wykorzystuje istniejącą zgodę; interaktywna zgoda jest uruchamiana tylko, gdy jest potrzebna.
+- Token OAuth pozostaje w pamięci aplikacji, nie jest zapisywany na stałe.
 
 Wdrożenie:
-1. Zrób kopię JSON z aktualnymi lotami.
-2. W repozytorium GitHub Pages zastąp index.html i sw.js plikami z paczki. manifest.json nie wymaga zmiany.
-3. Zapisz commit i poczekaj na publikację.
-4. Otwórz aplikację, kliknij „Odśwież aplikację”, następnie „Połącz Google Sheets / synchronizuj”.
-5. Sprawdź status synchronizacji: liczba „nowych” lotów z maili powinna wzrosnąć, jeśli loty z 11.10 są w karcie Flights i nie zostały już zaimportowane.
+1. Zrób kopię JSON lotów.
+2. Podmień index.html i sw.js w repozytorium GitHub Pages.
+3. Zapisz zmiany i poczekaj na publikację.
+4. Otwórz aplikację i kliknij „Odśwież aplikację”.
+5. Jeśli Google wymaga nowej zgody, kliknij „Połącz Google Sheets / synchronizuj” i zaakceptuj dostęp.
 
-Nie wykonywano rzeczywistej synchronizacji z kontem Google.
+Wznowienie bez interakcji działa, jeśli Google nadal pamięta wcześniejszą zgodę i domena jest poprawnie skonfigurowana w OAuth. Nie wykonano rzeczywistej synchronizacji z kontem Google.
