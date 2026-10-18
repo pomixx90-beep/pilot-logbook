@@ -1,7 +1,10 @@
-POMIWO Logbook v2.2.66 — naprawa utraty sektorów i statystyk
+POMIWO Logbook v2.2.67
 
-Ustalona przyczyna: dedupeLocalFlights() używało dopasowania semantycznego także między dwoma rekordami z sourceSheet (oba z Excela). To mogło sklejać niezależne wiersze Excela i zaniżać liczbę sektorów oraz nalot.
+Naprawy:
+- Usunięto specjalny filtr odrzucający loty z 2026-10-13 przy odczycie LogbookSync.
+- Usunięto czyszczenie lokalnych wpisów z 2026-10-13 podczas importu Excela. Brak lotów w JSON oznacza tylko brak bazowych wpisów Excelowych, a nie zakaz importu z e-maila.
+- Podniesiono importVersion i cache key, aby uruchomić przebudowę danych.
 
-Poprawka: rekordy z Excela nie są już wzajemnie deduplikowane semantycznie. Dopasowanie nadal służy do połączenia rekordu Excel z odpowiadającym wpisem e-mailowym/lokalnym. Podbito importVersion do 31, aby wymusić przebudowę historii według poprawionej reguły. Osadzony JSON zachowany; 13.10.2026 pozostaje puste.
+Statystyki źródłowe wymagają dalszej weryfikacji na Twoim rzeczywistym stanie danych: osadzony JSON ma 964 rekordy, sumę BLOCK 129719 min (2151:59), podczas gdy metadane wskazują expectedSourceTotalMinutes=131011 i importedRowsTotalMinutes=130638. To rozbieżność już w danych źródłowych/konwersji i nie należy jej maskować stałą korektą.
 
-Rozpakuj cały ZIP do nowego folderu i otwórz index.html. Zrób kopię JSON przed wdrożeniem.
+Rozpakuj do nowego folderu i otwórz index.html. Wpisy z e-maila z 13.10 mogą być importowane nawet jeśli JSON Excela nie zawiera tej daty.
