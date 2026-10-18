@@ -1,15 +1,15 @@
-POMIWO logbook v2.2.53 — poprawka sesji Google
+POMIWO logbook v2.2.54 — deduplikacja lotów mail/Excel
 
-Zmiany:
-- Po otwarciu aplikacja próbuje wznowić sesję Google bez ponownego wymuszania ekranu zgody.
-- Przycisk synchronizacji najpierw wykorzystuje istniejącą zgodę; interaktywna zgoda jest uruchamiana tylko, gdy jest potrzebna.
-- Token OAuth pozostaje w pamięci aplikacji, nie jest zapisywany na stałe.
+Co zmieniono:
+- Podniesiono wersję importu Excela, aby wymusić ponowne uzgodnienie już zapisanych danych.
+- Rekordy zaimportowane z maila są łączone z odpowiadającymi im lotami z workbook-data.json na podstawie daty, trasy i rejestracji (normalizacja rejestracji usuwa łączniki/spacje).
+- Zamiast wyświetlać osobny lot z numerem i drugi „bez numeru”, zachowywany jest jeden rekord z metadanymi maila.
+- Dodano końcowe zabezpieczenie przed duplikatem mail/Excel.
 
 Wdrożenie:
-1. Zrób kopię JSON lotów.
+1. Zrób kopię danych lotów.
 2. Podmień index.html i sw.js w repozytorium GitHub Pages.
 3. Zapisz zmiany i poczekaj na publikację.
-4. Otwórz aplikację i kliknij „Odśwież aplikację”.
-5. Jeśli Google wymaga nowej zgody, kliknij „Połącz Google Sheets / synchronizuj” i zaakceptuj dostęp.
+4. Otwórz aplikację, wybierz „Odśwież aplikację”.
 
-Wznowienie bez interakcji działa, jeśli Google nadal pamięta wcześniejszą zgodę i domena jest poprawnie skonfigurowana w OAuth. Nie wykonano rzeczywistej synchronizacji z kontem Google.
+Uwaga: nie wykonywano rzeczywistej synchronizacji z kontem Google.

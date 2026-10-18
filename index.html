@@ -39,13 +39,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.53</span></h1><p>Twój dziennik lotów · wpisy lokalne + loty z Google Sheets</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
+<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.54</span></h1><p>Twój dziennik lotów · wpisy lokalne + loty z Google Sheets</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.53</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.54</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -130,7 +130,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>POMIWO logbook · wersja aplikacji v2.2.53 · synchronizacja przez prywatny arkusz Google. Zapisuj regularnie kopie zapasowe.</footer>
+<footer>POMIWO logbook · wersja aplikacji v2.2.54 · synchronizacja przez prywatny arkusz Google. Zapisuj regularnie kopie zapasowe.</footer>
 </main>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
@@ -142,7 +142,7 @@ const GOOGLE_SYNC_TAB='LogbookSync';
 let googleAccessToken='', googleTokenExpiresAt=0, googleSyncTimer=null, cloudSyncInProgress=false, cloudSyncDebounce=null, googleTokenClient=null, googleConsentFallback=false;
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.53: PICUS is a separate selectable function and never increments SIC.
+// v2.2.54: PICUS is a separate selectable function and never increments SIC.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -296,7 +296,7 @@ function parseClock(value){
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
  return '';
 }
-// v2.2.53: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
+// v2.2.54: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
 function repairMissingVerifiedBlocks(){
  let repaired=0;
  for(const f of flights){
@@ -657,9 +657,9 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='26';
+  const importVersion='27';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=25',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=27',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
@@ -685,7 +685,7 @@ async function initWorkbook(){
     refreshedByRoute.get(rk).push(f);
   }
   const usedExcelIds=new Set(),mailIds=new Set(),manual=[];
-  const oldMail=flights.filter(x=>x.sourceId&&!x.sourceSheet);
+  const oldMail=flights.filter(x=>(x.sourceId||x.flightNumber)&&!x.sourceSheet);
   for(const f of oldMail){
     let candidates=(refreshedBySector.get(sectorKey(f))||[]).filter(x=>!usedExcelIds.has(x.id));
     if(!candidates.length){
@@ -708,9 +708,23 @@ async function initWorkbook(){
       if(!match.notes&&f.notes)match.notes=f.notes;
     }else manual.push(f);
   }
-  // Keep all manually created records, excluding only mail records that were merged above.
-  for(const f of flights.filter(x=>!x.sourceSheet&&!x.sourceId))manual.push(f);
-  flights=[...refreshed,...manual];
+  // Keep manually created records, excluding mail records that were merged above.
+  for(const f of flights.filter(x=>!x.sourceSheet&&!x.sourceId&&!mailIds.has(x.id)))manual.push(f);
+  // Final safety net: when the workbook row and mail-imported row describe the same dated sector,
+  // keep the workbook record and merge useful mail metadata instead of showing two flights.
+  const finalFlights=[...refreshed];
+  for(const f of manual){
+    const match=finalFlights.find(x=>x.sourceSheet && sectorKey(x)===sectorKey(f));
+    if(match){
+      if(!match.flightNumber&&f.flightNumber)match.flightNumber=f.flightNumber;
+      if(!match.sourceId&&f.sourceId)match.sourceId=f.sourceId;
+      if(!(Number(match.block)>0)&&Number(f.block)>0)match.block=Number(f.block);
+      if(Number(f.sbh)>0&&Number(match.sbh)!==Number(f.sbh))match.sbh=Number(f.sbh);
+      if(!match.depTime&&f.depTime)match.depTime=f.depTime;
+      if(!match.arrTime&&f.arrTime)match.arrTime=f.arrTime;
+    }else finalFlights.push(f);
+  }
+  flights=finalFlights;
   localStorage.setItem(KEY,JSON.stringify(flights));
   await durableWrite();
   localStorage.setItem(IMPORT_KEY,importVersion);
