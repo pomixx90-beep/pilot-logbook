@@ -657,9 +657,9 @@ function importFlightsFromWorkbook(data){
 }
 async function initWorkbook(){
  try{
-  const importVersion='28';
+  const importVersion='29';
   if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
-  const res=await fetch('./workbook-data.json?import=27',{cache:'no-store'});
+  const res=await fetch('./workbook-data.json?import=29',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
   if(!Array.isArray(workbookData.flights)||!workbookData.flights.length)throw Error('Brak przygotowanej listy lotów.');
@@ -671,10 +671,10 @@ async function initWorkbook(){
   const refreshed=[],refreshedKeys=new Map();
   const exactSectorKey=f=>[String(f.date||'').slice(0,10),String(f.departure||'').trim().toUpperCase(),String(f.arrival||'').trim().toUpperCase(),String(f.registration||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,''),String(f.depTime||''),String(f.arrTime||''),Number(f.block)||0].join('|');
   for(const f of refreshedRaw){const k=exactSectorKey(f),idx=refreshedKeys.get(k);if(idx===undefined){refreshedKeys.set(k,refreshed.length);refreshed.push(f);continue;}const prior=refreshed[idx];for(const field of ['sbh','block','pic','picus','sic','dual','instructor','ifr','night','se','me','multiPilot','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight'])if(!(Number(prior[field])>0)&&Number(f[field])>0)prior[field]=Number(f[field]);for(const field of ['flightNumber','aircraftType','captain','sourceId','scheduledSTD','scheduledSTA','notes'])if(!prior[field]&&f[field])prior[field]=f[field];}
-  // Reconcile previously imported mail rows against the refreshed Excel sectors.
-  // Match registration without punctuation (e.g. SPRSA vs SP-RSA), preserve mail metadata,
-  // but keep the workbook's verified BLOCK/SBH when present. Only mail rows are merged;
-  // manual user-entered flights remain untouched.
+  // Reconcile previously imported email rows against the refreshed Excel sectors.
+  // Email / Verified Flights is authoritative for fields it actually supplies; it updates
+  // the matching Excel record rather than appearing as a second sector. Excel-only fields
+  // remain intact when the email row has no value for them.
   const normCode=v=>String(v??'').trim().toUpperCase();
   const normReg=v=>normCode(v).replace(/[^A-Z0-9]/g,'');
   const normDate=v=>String(v??'').slice(0,10);
@@ -689,7 +689,7 @@ async function initWorkbook(){
     refreshedByRoute.get(rk).push(f);
   }
   const usedExcelIds=new Set(),mailIds=new Set(),manual=[];
-  const oldMail=flights.filter(x=>(x.sourceId||x.flightNumber)&&!x.sourceSheet);
+  const oldMail=flights.filter(x=>x.sourceId&&!x.sourceSheet);
   for(const f of oldMail){
     let candidates=(refreshedBySector.get(sectorKey(f))||[]).filter(x=>!usedExcelIds.has(x.id));
     if(!candidates.length){
@@ -701,15 +701,18 @@ async function initWorkbook(){
       const oldBlock=Number(f.block)||0;
       candidates.sort((a,b)=>Math.abs((Number(a.block)||0)-oldBlock)-Math.abs((Number(b.block)||0)-oldBlock));
       const match=candidates[0];usedExcelIds.add(match.id);mailIds.add(f.id);
-      if(!match.flightNumber&&f.flightNumber)match.flightNumber=f.flightNumber;
-      if(!match.sourceId&&f.sourceId)match.sourceId=f.sourceId;
-      if(!(Number(match.block)>0)&&Number(f.block)>0)match.block=Number(f.block);
-      if(Number(f.sbh)>0&&Number(match.sbh)!==Number(f.sbh))match.sbh=Number(f.sbh);
-      if(!match.depTime&&f.depTime)match.depTime=f.depTime;
-      if(!match.arrTime&&f.arrTime)match.arrTime=f.arrTime;
-      if(!match.scheduledSTD&&f.scheduledSTD)match.scheduledSTD=f.scheduledSTD;
-      if(!match.scheduledSTA&&f.scheduledSTA)match.scheduledSTA=f.scheduledSTA;
-      if(!match.notes&&f.notes)match.notes=f.notes;
+      // Keep the Excel ID/sourceSheet so this remains one logbook row, but apply email
+      // values wherever supplied. Never replace a useful Excel value with an empty mail cell.
+      const emailFields=['flightNumber','registration','departure','arrival','captain','depTime','arrTime','scheduledSTD','scheduledSTA','block','sbh','pic','picus','sic','dual','instructor','ifr','night','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight','takeoffDay','takeoffNight','rolePIC','rolePICUS','roleCOPILOT','roleDUAL','roleINSTRUCTOR','notes'];
+      for(const field of emailFields){
+        if(!Object.prototype.hasOwnProperty.call(f,field)||f[field]===null||f[field]===undefined)continue;
+        const value=f[field];
+        if(typeof value==='string'&&!value.trim())continue;
+        if(['block','sbh'].includes(field)&&!(Number(value)>0))continue;
+        if(['pic','picus','sic','dual','instructor','ifr','night','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight'].includes(field)&&!Number.isFinite(Number(value)))continue;
+        if(match[field]!==value)match[field]=value;
+      }
+      match.sourceId=f.sourceId||match.sourceId;
     }else manual.push(f);
   }
   // Keep manually created records, excluding mail records that were merged above.
@@ -720,12 +723,14 @@ async function initWorkbook(){
   for(const f of manual){
     const match=finalFlights.find(x=>x.sourceSheet && sectorKey(x)===sectorKey(f));
     if(match){
-      if(!match.flightNumber&&f.flightNumber)match.flightNumber=f.flightNumber;
-      if(!match.sourceId&&f.sourceId)match.sourceId=f.sourceId;
-      if(!(Number(match.block)>0)&&Number(f.block)>0)match.block=Number(f.block);
-      if(Number(f.sbh)>0&&Number(match.sbh)!==Number(f.sbh))match.sbh=Number(f.sbh);
-      if(!match.depTime&&f.depTime)match.depTime=f.depTime;
-      if(!match.arrTime&&f.arrTime)match.arrTime=f.arrTime;
+      if(f.sourceId)match.sourceId=f.sourceId;
+      for(const field of ['flightNumber','registration','departure','arrival','captain','depTime','arrTime','scheduledSTD','scheduledSTA','block','sbh','pic','picus','sic','dual','instructor','ifr','night','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight','takeoffDay','takeoffNight','rolePIC','rolePICUS','roleCOPILOT','roleDUAL','roleINSTRUCTOR','notes']){
+        if(!Object.prototype.hasOwnProperty.call(f,field)||f[field]===null||f[field]===undefined)continue;
+        const value=f[field];if(typeof value==='string'&&!value.trim())continue;
+        if(['block','sbh'].includes(field)&&!(Number(value)>0))continue;
+        if(['pic','picus','sic','dual','instructor','ifr','night','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight'].includes(field)&&!Number.isFinite(Number(value)))continue;
+        match[field]=value;
+      }
     }else finalFlights.push(f);
   }
   flights=finalFlights;

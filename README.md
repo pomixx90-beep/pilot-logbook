@@ -1,7 +1,7 @@
-POMIWO logbook v2.2.56 — zachowanie SBH i korekta zduplikowanych statystyk
+POMIWO Logbook v2.2.57 — email overrides matching Excel flights
 
-Poprawki: (1) wartość SBH=0 z Excela nie nadpisuje wcześniejszego dodatniego SBH; (2) dokładnie powielone wiersze arkusza nie są liczone drugi raz, a przy scalaniu zachowywane są dodatnie SBH i inne czasy; (3) zachowane jest wyświetlanie SBH dla lotów z Excela.
+Poprawka: rekordy z Verified Flights (e-mail) aktualizują dopasowany lot z Excela zamiast tworzyć drugi wpis. Pola dostarczone przez e-mail, w tym BLOCK, SBH, rejestracja, trasa, czasy, flight number i role, mają pierwszeństwo; puste pola e-maila nie kasują istniejących danych Excel. Rekord zachowuje ID wiersza Excel, więc statystyki liczą go tylko raz. Ręcznie dodane loty bez sourceId nie są automatycznie traktowane jak import e-mailowy. Zwiększono wersję importu do 29, aby ponownie wykonać scalanie po wdrożeniu.
 
-Wdrożenie: zrób kopię danych, podmień index.html i sw.js w GitHub Pages, commituj, poczekaj na publikację i kliknij „Odśwież aplikację”.
+Wdrożenie: zrób kopię JSON, podmień index.html i sw.js w GitHub Pages, commituj i po publikacji użyj „Odśwież aplikację”. workbook-data.json musi pozostać obok index.html.
 
-Ważne: zrób kopię JSON przed wdrożeniem. Wersja importu 28 odtworzy rekordy z workbook-data.json, zachowa dodatnie SBH z poprzednich rekordów o tych samych ID i pominie tylko dokładne duplikaty (data, trasa, rejestracja, godziny i block). Synchronizacji Google nie testowano.
+Nie usuwaj danych lokalnych przed kopią zapasową. Synchronizacji Google nie testowano na żywym arkuszu.
