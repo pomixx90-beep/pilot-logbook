@@ -1,11 +1,7 @@
-# POMIWO Logbook v2.2.60
+POMIWO Logbook v2.2.66 — naprawa utraty sektorów i statystyk
 
-Poprawka deduplikacji lotów Excel/e-mail i lokalnego scalania podczas startu oraz synchronizacji.
+Ustalona przyczyna: dedupeLocalFlights() używało dopasowania semantycznego także między dwoma rekordami z sourceSheet (oba z Excela). To mogło sklejać niezależne wiersze Excela i zaniżać liczbę sektorów oraz nalot.
 
-## Wdrożenie
-1. Zrób kopię danych logbooka.
-2. Podmień `index.html` i `sw.js` w GitHub Pages.
-3. Pozostaw istniejące `workbook-data.json` i `manifest.json`.
-4. Opublikuj zmiany i odśwież aplikację.
+Poprawka: rekordy z Excela nie są już wzajemnie deduplikowane semantycznie. Dopasowanie nadal służy do połączenia rekordu Excel z odpowiadającym wpisem e-mailowym/lokalnym. Podbito importVersion do 31, aby wymusić przebudowę historii według poprawionej reguły. Osadzony JSON zachowany; 13.10.2026 pozostaje puste.
 
-Nie czyść pamięci przeglądarki. Deduplikacja scala rekordy tego samego dnia i trasy, z tą samą rejestracją (jeśli jest dostępna), zgodnym numerem lotu (jeśli oba wpisy go mają), zbliżonym czasem BLOCK oraz kompatybilnymi godzinami. Zachowuje rekord Excela jako podstawowy i uzupełnia go danymi e-maila.
+Rozpakuj cały ZIP do nowego folderu i otwórz index.html. Zrób kopię JSON przed wdrożeniem.
