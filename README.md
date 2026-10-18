@@ -1,19 +1,11 @@
-POMIWO Logbook v2.2.69 — naprawa źródłowych statystyk Excela
+POMIWO Logbook v2.2.71 — naprawa pominiętego sektora i SBH
 
-Co naprawiono:
-- Historia źródłowa jest odtwarzana z wierszy arkuszy rocznych, a nie z niekompletnej tablicy `flights`.
-- Każdy wiersz Excela identyfikuje para `sourceSheet` + `sourceRow`; nie scala się odrębnych sektorów po podobieństwie.
-- Naprawiono daty z błędnym 3-cyfrowym rokiem na podstawie nazwy arkusza.
-- Formuły `SUMIF` obsługują kryteria `B737-*`, `B737-8*` i `B737-800`, co przywraca Multi-pilot/IFR.
-- `SE`, `ME`, Multi-pilot oraz starty/lądowania dzień/noc odczytywane są z właściwych kolumn arkusza.
-- Dla rekordów e-mailowych B737 bez wiersza Excela `ME` i `Multi-pilot` liczone są z block time.
-- Kolumny startów/lądowań oraz SBH z Excela nie są nadpisywane przez przybliżenia z maili; e-mail nadal nadpisuje dane sektora, takie jak numer lotu, rejestracja, czasy i dostępne funkcje.
-- Loty z 13.10 nie są blokowane: jeśli są w Excelu, pochodzą z jego wierszy; jeśli są wyłącznie z maila, pozostają jako rekordy mailowe.
+Ustalenie: w źródle 2025, wiersz 169, jest lot 2025-06-09 LPDPL → EPPO, 15:48–17:28, BLOCK 1:40, B737-800, SP-RSS. Import odrzucał go wyłącznie dlatego, że LPDPL ma 5 znaków, a walidacja akceptowała tylko 4. Ten rekord odpowiada różnicy 1:40 w nalocie/SIC/IFR/ME/Multi-pilot oraz jednemu brakującemu lądowaniu/startowi.
 
-Wdrożenie:
-1. Rozpakuj ZIP do nowego folderu.
-2. Podmień `index.html` i `sw.js` na hostingu. Zostaw `workbook-data.json` z tego pakietu (zawiera surowe wiersze arkuszy).
-3. Otwórz aplikację ponownie. Na hostingu odśwież stronę; lokalnie otwórz nowy `index.html`.
-4. Wersja importu 34 odbudowuje źródłowe loty; dotychczasowe rekordy e-mailowe są dopasowywane po dacie/trasa/rejestracji.
+Zmiany:
+- Nie odrzucaj rekordu źródłowego tylko z powodu długości kodu lotniska; lot z czasem i datą zachowuje swój czas i statystyki. Kod źródłowy LPDPL pozostaje bez zmian — nie zgaduję, jaki kod powinien być wpisany w Excelu.
+- Dla wpisów powiązanych z wierszem Excela kategorie PIC/SIC, Dual, Instructor, SE/ME, Multi-pilot, IFR, NIGHT i starty/lądowania są ponownie odczytywane z właściwego wiersza źródłowego. Numery lotów, rejestracje i czasy z e-maili nadal uzupełniają dane lotu.
+- SBH jest prezentowane tylko raz w nagłówku danego dnia. Jeśli wiele rekordów ma SBH, preferowana jest wartość z wiersza źródłowego Excela zamiast sumowania duplikatów.
+- Zwiększono wersję importu i cache service workera.
 
-Uwaga: nie usuwaj ręcznie lokalnych danych bez kopii zapasowej. Pełne porównanie z sumami Excela należy wykonać po odbudowie i po synchronizacji e-maili, ponieważ nie mam bezpośredniego dostępu do Twojej bieżącej bazy przeglądarki/Google Sheets.
+Wdrożenie lokalne: rozpakuj ZIP do nowego folderu i otwórz index.html. Na hostingu podmień index.html i sw.js; zachowaj workbook-data.json (dołączony plik JSON ma osadzony w index.html odpowiednik). Nie kasuj danych w przeglądarce bez kopii.
