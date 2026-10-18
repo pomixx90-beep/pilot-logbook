@@ -1,13 +1,13 @@
-# POMIWO Logbook v2.2.78 — poprawka trwałości SBH
+# POMIWO Logbook v2.2.79 — poprawka aktualizacji lotów z zaległych maili
 
-## Poprawki
-- Widoczna wersja aplikacji w nagłówku, podsumowaniu, stopce i tytule strony: `v2.2.78`.
-- Zwiększono cache Service Workera do `pomiwo-logbook-v2.2.78` i wersję odbudowy historii do `39`.
-- Naprawiono utratę `sectorSBH` podczas ponownego budowania historii z danych Excela po odświeżeniu.
-- `sectorSBH` jest teraz kopiowane z zachowanych wpisów e-mail do odpowiadającego im wiersza Excela.
-- Dla poprzednich danych, w których `sectorSBH` już zniknęło lokalnie, wartość jest odzyskiwana z zachowanych `scheduledSTD` i `scheduledSTA` (STA − STD).
-- Pusta lub zerowa wartość ze starego wpisu nie kasuje dodatniego SBH sektora.
-- Poprzednia normalizacja kodu `LPDPL` → `LDPL` i synchronizacja do `LogbookSync` pozostają w tej wersji.
+## Zmiany
+- Widoczny numer wersji `v2.2.79` w nagłówku, podsumowaniu, tytule i stopce.
+- Cache Service Workera zmieniony na `pomiwo-logbook-v2.2.79`.
+- Wersja importu danych podbita do `40`.
+- Dopasowanie maila najpierw po `ImportKey`, potem po dacie + numerze lotu; dopiero następnie po dacie + trasie + zgodnej rejestracji. Różnice czasu BLOCK nie blokują już mocnego dopasowania po numerze lotu.
+- Raport synchronizacji pokazuje oddzielnie, ile wpisów zostało dodanych z maili, a ile istniejących wpisów zaktualizowano z maili. Nie myli tego z liczbą rekordów dopasowanych w chmurze.
+- Po imporcie przed scałaniem z chmurą wykonywany jest zapis trwały do lokalnego IndexedDB.
+- Zachowano normalizację `LPDPL` → `LDPL` oraz naprawy SBH z poprzednich wersji.
 
 ## Wdrożenie
-Wgraj wszystkie pliki z tego archiwum do katalogu głównego aplikacji, nadpisując `index.html`, `workbook-data.json`, `sw.js` i `manifest.json`. Otwórz aplikację online i sprawdź widoczny numer `v2.2.78`. Uruchom synchronizację raz, odśwież i sprawdź SBH bez ponownej synchronizacji.
+Wgraj wszystkie pliki z archiwum do katalogu głównego aplikacji, nadpisując `index.html`, `workbook-data.json`, `sw.js` i `manifest.json`. Otwórz aplikację online, upewnij się, że nagłówek pokazuje `v2.2.79`, a następnie wykonaj synchronizację. W komunikacie sprawdź liczbę „zaktualizowanych istniejących” lotów z maili. Po odświeżeniu sprawdź te same wpisy ponownie.
