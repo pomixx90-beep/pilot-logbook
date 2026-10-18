@@ -39,13 +39,13 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.55</span></h1><p>Twój dziennik lotów · wpisy lokalne + loty z Google Sheets</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
+<header class="app-header"><div class="header-title"><h1>✈ POMIWO logbook <span class="version" id="appVersion">v2.2.59</span></h1><p>Twój dziennik lotów · wpisy lokalne + loty z Google Sheets</p></div><button class="header-add" type="button" id="headerAddFlight">＋ Dodaj lot</button><button class="refreshBtn" type="button" id="refreshApp">↻ Odśwież aplikację</button><div id="pullRefreshHint" aria-live="polite">Puść, aby odświeżyć</div></header>
 <nav>
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="history">Historia</button><button data-tab="reports">Raporty</button><button data-tab="data">Import / eksport</button>
 </nav>
 <main>
 <section id="dashboard" class="view active">
-<h2>Podsumowanie <span class="version">v2.2.55</span></h2>
+<h2>Podsumowanie <span class="version">v2.2.59</span></h2>
 <div class="cards">
 <div class="card"><small>Nalot całkowity</small><div class="value" id="total">0:00</div></div>
 <div class="card"><small>Loty / sektory</small><div class="value" id="sectors">0</div></div>
@@ -130,7 +130,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}.hidden{display:none!
 <h2>Ważne o EASA / FTL</h2>
 <div class="panel sub">Domyślne progi 100:00 w kolejnych 28 dniach i 900:00 w kolejnych 365 dniach pokazują sumę czasu lotu z zapisanych wpisów. Nie zastępują aktualnych przepisów, zatwierdzonego schematu FTL operatora ani narzędzia do sprawdzania FDP/duty/rest. Zweryfikuj zakres i sposób liczenia przed użyciem operacyjnym.</div>
 </section>
-<footer>POMIWO logbook · wersja aplikacji v2.2.56 · synchronizacja przez prywatny arkusz Google. Zapisuj regularnie kopie zapasowe.</footer>
+<footer>POMIWO logbook · wersja aplikacji v2.2.59 · synchronizacja przez prywatny arkusz Google. Zapisuj regularnie kopie zapasowe.</footer>
 </main>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
@@ -142,7 +142,7 @@ const GOOGLE_SYNC_TAB='LogbookSync';
 let googleAccessToken='', googleTokenExpiresAt=0, googleSyncTimer=null, cloudSyncInProgress=false, cloudSyncDebounce=null, googleTokenClient=null, googleConsentFallback=false;
 const IDB_NAME='pilot-logbook-durable-v1', IDB_STORE='state';
 let flights=loadFlights();
-// v2.2.55: PICUS is a separate selectable function and never increments SIC.
+// v2.2.59: prevent cloud bulk-download when local workbook data has not initialized.
 const $=id=>document.getElementById(id);
 function loadFlights(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
 function openDurableDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB niedostępne'));const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(IDB_STORE))req.result.createObjectStore(IDB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||Error('Błąd IndexedDB'))})}
@@ -296,7 +296,7 @@ function parseClock(value){
  const d=new Date(v);if(!Number.isNaN(d.getTime()))return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
  return '';
 }
-// v2.2.55: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
+// v2.2.59: repair old Verified Flights records that saved OffBlock/OnBlock times but omitted `block`.
 function repairMissingVerifiedBlocks(){
  let repaired=0;
  for(const f of flights){
@@ -456,6 +456,51 @@ async function fetchVerifiedSheet(){
 }
 function flightIdentity(f){return [String(f.date||'').slice(0,10),String(f.flightNumber||'').trim().toUpperCase(),String(f.departure||'').trim().toUpperCase(),String(f.arrival||'').trim().toUpperCase(),String(f.registration||'').trim().toUpperCase()].join('|')}
 function findFlightMatch(f,list){return list.find(x=>(f.id&&x.id===f.id)||(f.sourceId&&x.sourceId===f.sourceId))}
+function flightNorm(v){return String(v??'').trim().toUpperCase()}
+function flightReg(v){return flightNorm(v).replace(/[^A-Z0-9]/g,'')}
+function flightRouteKey(f){return [String(f.date||'').slice(0,10),flightNorm(f.departure),flightNorm(f.arrival)].join('|')}
+function flightSemanticMatch(a,b){
+ if(!a||!b||String(a.date||'').slice(0,10)!==String(b.date||'').slice(0,10))return false;
+ if(flightNorm(a.departure)!==flightNorm(b.departure)||flightNorm(a.arrival)!==flightNorm(b.arrival))return false;
+ const ar=flightReg(a.registration),br=flightReg(b.registration);
+ if(ar&&br&&ar!==br)return false;
+ const af=flightNorm(a.flightNumber),bf=flightNorm(b.flightNumber);
+ if(af&&bf&&af!==bf)return false;
+ const at=flightNorm(a.depTime),bt=flightNorm(b.depTime),aa=flightNorm(a.arrTime),ba=flightNorm(b.arrTime);
+ if(at&&bt&&at!==bt&&aa&&ba&&aa!==ba){
+  const mins=t=>{const m=t.match(/^(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):NaN};
+  const d1=mins(at),d2=mins(bt),e1=mins(aa),e2=mins(ba);
+  if(Number.isFinite(d1)&&Number.isFinite(d2)&&Number.isFinite(e1)&&Number.isFinite(e2)&&Math.abs(d1-d2)>20&&Math.abs(e1-e2)>20)return false;
+ }
+ // A matching ImportKey/flight number is strong evidence; otherwise require a matching route,
+ // normalized registration (when present), and compatible times or a unique candidate at caller.
+ if((a.sourceId&&b.sourceId&&a.sourceId===b.sourceId)||(af&&bf&&af===bf))return true;
+ return (!ar||!br||ar===br) && ((!at||!bt||at===bt||!aa||!ba||aa===ba) || (Math.abs((Number(a.block)||0)-(Number(b.block)||0))<=10));
+}
+function mergeFlightPreferSource(target,source){
+ // Keep Excel row IDs canonical, but email records are authoritative when they carry sourceId and no sourceSheet.
+ const emailTarget=!!target.sourceId&&!target.sourceSheet;
+ const excelSource=!!source.sourceSheet;
+ const fields=['sourceId','flightNumber','registration','departure','arrival','captain','depTime','arrTime','scheduledSTD','scheduledSTA','block','sbh','pic','picus','sic','dual','instructor','ifr','night','landings','landingsDay','landingsNight','takeoffsDay','takeoffsNight','takeoffDay','takeoffNight','rolePIC','rolePICUS','roleCOPILOT','roleDUAL','roleINSTRUCTOR','notes'];
+ for(const k of fields){if(!Object.prototype.hasOwnProperty.call(source,k)||source[k]===null||source[k]===undefined)continue;const v=source[k];if(typeof v==='string'&&!v.trim())continue;if(['block','sbh'].includes(k)&&!(Number(v)>0))continue;if(emailTarget&&excelSource&&target[k]!==undefined&&target[k]!==null&&target[k]!==''&&!(typeof target[k]==='number'&&target[k]===0))continue;target[k]=v;}
+ return target;
+}
+function dedupeLocalFlights(){
+ const input=Array.isArray(flights)?flights:[], out=[], used=new Set();
+ for(let i=0;i<input.length;i++){
+  if(used.has(i))continue;const f=input[i];let target=f;
+  // Excel rows are canonical when a mail row describes the same sector.
+  if(!f.sourceSheet&&f.sourceId){
+   const candidates=input.map((x,j)=>({x,j})).filter(o=>o.j!==i&&!used.has(o.j)&&o.x.sourceSheet&&flightSemanticMatch(o.x,f));
+   if(candidates.length===1){const {x,j}=candidates[0];mergeFlightPreferSource(x,f);target=x;used.add(j);used.add(i);out.push(target);continue;}
+  }
+  // Collapse only high-confidence duplicates; do not collapse repeated same-route sectors with different times.
+  const priorIndex=out.findIndex(x=>flightSemanticMatch(x,f)&&((x.sourceSheet&&f.sourceId&&!f.sourceSheet)||(f.sourceSheet&&x.sourceId&&!x.sourceSheet)||(x.sourceId&&f.sourceId&&x.sourceId===f.sourceId)||(flightNorm(x.flightNumber)&&flightNorm(x.flightNumber)===flightNorm(f.flightNumber))));
+  if(priorIndex>=0){const prior=out[priorIndex];if(prior.sourceSheet&&!f.sourceSheet)mergeFlightPreferSource(prior,f);else if(!prior.sourceSheet&&f.sourceSheet){mergeFlightPreferSource(f,prior);out[priorIndex]=f;}else mergeFlightPreferSource(prior,f);used.add(i);continue;}
+  out.push(f);used.add(i);
+ }
+ if(out.length!==input.length){flights=out;localStorage.setItem(KEY,JSON.stringify(flights));}
+}
 async function syncCloudFlights(){
  await ensureSyncTab();
  let data=await sheetsApi(`/values/${encodeURIComponent(GOOGLE_SYNC_TAB+'!A:C')}?majorDimension=ROWS`);
@@ -463,27 +508,47 @@ async function syncCloudFlights(){
  if(!rows.length){await sheetsApi(`/values/${encodeURIComponent(GOOGLE_SYNC_TAB+'!A1:C1')}?valueInputOption=RAW`,{method:'PUT',body:JSON.stringify({values:[['FlightId','UpdatedAt','PayloadJSON']]})});rows=[['FlightId','UpdatedAt','PayloadJSON']]}
  const remote=new Map();
  for(let i=1;i<rows.length;i++){const r=rows[i]||[];if(!r[0]||!r[2])continue;try{const f=JSON.parse(r[2]);if(f&&typeof f==='object'&&f.id)remote.set(String(r[0]),{flight:f,row:i+1,updatedAt:r[1]||''})}catch(e){console.warn('Pominięto niepoprawny wpis w LogbookSync, wiersz',i+1)}}
- // Upload locally held IDs that are not already stored in the shared tab.
+ // Reconcile remote rows with local sectors before uploading. IDs differ across devices,
+ // so identity alone is insufficient: use stable source IDs and a conservative sector match.
  const remoteSourceIds=new Set([...remote.values()].map(x=>String(x.flight?.sourceId||'')).filter(Boolean));
- const missing=flights.filter(f=>f&&f.id&&!remote.has(String(f.id))&&!(f.sourceId&&remoteSourceIds.has(String(f.sourceId))));
+ const matchedRemote=new Set();
+ for(const item of remote.values()){
+  const rf=item.flight;
+  let local=flights.find(x=>(rf.id&&x.id===rf.id)||(rf.sourceId&&x.sourceId===rf.sourceId));
+  if(!local){const candidates=flights.filter(x=>flightSemanticMatch(x,rf));if(candidates.length===1)local=candidates[0];}
+  if(local){
+   // Email records are authoritative for populated fields, while keeping the local Excel ID.
+   mergeFlightPreferSource(local,rf);matchedRemote.add(String(item.flight.id||''));
+  }
+ }
+ dedupeLocalFlights();
+ const missing=flights.filter(f=>f&&f.id&&!remote.has(String(f.id))&&!(f.sourceId&&remoteSourceIds.has(String(f.sourceId)))&&!([...remote.values()].some(item=>flightSemanticMatch(f,item.flight))));
  if(missing.length){const values=missing.map(f=>[String(f.id),new Date().toISOString(),JSON.stringify(f)]);await sheetsApi(`/values/${encodeURIComponent(GOOGLE_SYNC_TAB+'!A:C')}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{method:'POST',body:JSON.stringify({majorDimension:'ROWS',values})});for(const f of missing)remote.set(String(f.id),{flight:f,updatedAt:new Date().toISOString()})}
- // Pull remote flights without replacing any existing local record.
- const additions=[];
- for(const item of remote.values()){const f=item.flight;if(!findFlightMatch(f,flights)&&!findFlightMatch(f,additions))additions.push(f)}
- if(additions.length){cloudSyncInProgress=true;try{flights.push(...additions);save()}finally{cloudSyncInProgress=false}}
- return {uploaded:missing.length,downloaded:additions.length,remoteCount:remote.size};
+ // Pull only genuinely new sectors; merge matching remote rows rather than adding a second flight.
+ const additions=[];let merged=0;
+ for(const item of remote.values()){
+  const f=item.flight;
+  let local=findFlightMatch(f,flights);
+  if(!local){const candidates=flights.filter(x=>flightSemanticMatch(x,f));if(candidates.length===1)local=candidates[0];}
+  if(local){mergeFlightPreferSource(local,f);merged++;continue;}
+  if(!findFlightMatch(f,additions)&&!additions.some(x=>flightSemanticMatch(x,f)))additions.push(f);
+ }
+ if(additions.length||merged){cloudSyncInProgress=true;try{flights.push(...additions);dedupeLocalFlights();save()}finally{cloudSyncInProgress=false}}
+ return {uploaded:missing.length,downloaded:additions.length,merged,remoteCount:remote.size};
 }
 async function syncGoogleSheet(showResult=true){
  if(cloudSyncInProgress)return {ok:true,skipped:true};
  cloudSyncInProgress=true;
  try{
+  setSheetsStatus('Przygotowuję lokalną historię przed synchronizacją…');
+  await appReadyPromise;
   setSheetsStatus('Synchronizuję loty z Google Sheets…');
   // First import verified mail flights using the existing import rules.
   const rows=await fetchVerifiedSheet();const beforeVerified=flights.length;
   await processVerifiedRows(rows,'Google Sheets',{askBeforeAdd:false,showAlerts:false});
   const verifiedAdded=flights.length-beforeVerified;
   const cloud=await syncCloudFlights();
-  setSheetsStatus(`Synchronizacja zakończona. Z maili: ${verifiedAdded} nowych; do chmury: ${cloud.uploaded}; pobrano na to urządzenie: ${cloud.downloaded}. Ostatnia synchronizacja: ${new Date().toLocaleString('pl-PL')}.`);
+  setSheetsStatus(`Synchronizacja zakończona. Z maili: ${verifiedAdded} nowych; zaktualizowano istniejących: ${cloud.merged||0}; do chmury dodano: ${cloud.uploaded}; pobrano jako nowe: ${cloud.downloaded}. Ostatnia synchronizacja: ${new Date().toLocaleString('pl-PL')}.`);
   return {ok:true,...cloud,verifiedAdded};
  }catch(err){setSheetsStatus('Synchronizacja nieudana: '+(err.message||err));if(showResult)alert('Synchronizacja Google Sheets: '+(err.message||err));return {ok:false,error:err};}
  finally{cloudSyncInProgress=false}
@@ -658,7 +723,8 @@ function importFlightsFromWorkbook(data){
 async function initWorkbook(){
  try{
   const importVersion='29';
-  if(localStorage.getItem(IMPORT_KEY)===importVersion)return;
+  // Import the workbook only on a fresh install. A code-version change must not replay an old workbook snapshot.
+  if(localStorage.getItem(IMPORT_KEY)&&flights.length)return;
   const res=await fetch('./workbook-data.json?import=29',{cache:'no-store'});
   if(!res.ok)throw Error('Nie można odczytać danych Excela.');
   workbookData=await res.json();
@@ -743,7 +809,7 @@ async function initWorkbook(){
  }catch(err){console.error('Excel import:',err);if($('dataStatus'))$('dataStatus').textContent='Błąd importu: '+err.message}
 }
 clearForm();
-(async()=>{await restoreDurableIfNeeded();render();await initWorkbook()})();
+const appReadyPromise=(async()=>{await restoreDurableIfNeeded();dedupeLocalFlights();render();await initWorkbook();if(!flights.length)throw Error('Lokalny logbook nie został załadowany. Synchronizacja wstrzymana, aby nie pobrać ponownie całej historii z chmury. Sprawdź workbook-data.json i odśwież aplikację.');return true;})();
 $('refreshApp').addEventListener('click',async()=>{try{if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.update();}}catch(e){}location.href=location.pathname+'?refresh='+Date.now()});
 $('headerAddFlight').addEventListener('click',()=>switchTab('add'));
 // iPhone pull-to-refresh: only trigger when the page is already at the very top.
