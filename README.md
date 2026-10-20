@@ -6,4 +6,3 @@ WDROŻENIE: wgraj wszystkie pliki z katalogu POMIWO_logbook_v2.2.81_FINANCE_LOCK
 
 Uwaga bezpieczeństwa: to ochrona danych szyfrowaniem po stronie klienta, nie kontrola dostępu na poziomie serwera. Plik zaszyfrowany jest publicznie pobieralny, ale nie zawiera jawnych wartości. Każdy, kto zna hasło, może go odszyfrować.
 
-Hasło do sekcji Finanse: `Finanse2026`.
