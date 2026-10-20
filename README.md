@@ -1,13 +1,7 @@
-# POMIWO Logbook v2.2.79 — poprawka aktualizacji lotów z zaległych maili
+POMIWO Logbook v2.2.80 — sekcja Finanse
 
-## Zmiany
-- Widoczny numer wersji `v2.2.79` w nagłówku, podsumowaniu, tytule i stopce.
-- Cache Service Workera zmieniony na `pomiwo-logbook-v2.2.79`.
-- Wersja importu danych podbita do `40`.
-- Dopasowanie maila najpierw po `ImportKey`, potem po dacie + numerze lotu; dopiero następnie po dacie + trasie + zgodnej rejestracji. Różnice czasu BLOCK nie blokują już mocnego dopasowania po numerze lotu.
-- Raport synchronizacji pokazuje oddzielnie, ile wpisów zostało dodanych z maili, a ile istniejących wpisów zaktualizowano z maili. Nie myli tego z liczbą rekordów dopasowanych w chmurze.
-- Po imporcie przed scałaniem z chmurą wykonywany jest zapis trwały do lokalnego IndexedDB.
-- Zachowano normalizację `LPDPL` → `LDPL` oraz naprawy SBH z poprzednich wersji.
+W paczce są pliki aplikacji oraz finance-data.enc.json. Arkusz Invoice został usunięty z publicznego workbook-data.json i z osadzonej kopii w index.html. Dane finansowe są osobno szyfrowane AES-256-GCM; klucz uzyskiwany jest w przeglądarce z hasła przez PBKDF2-SHA256 (310 000 iteracji). Hasło nie jest zapisane w plikach aplikacji. Dane odszyfrowane nie są zapisywane do localStorage ani IndexedDB, a sekcja blokuje się po przejściu do innej karty, ukryciu aplikacji lub 5 minutach bezczynności.
 
-## Wdrożenie
-Wgraj wszystkie pliki z archiwum do katalogu głównego aplikacji, nadpisując `index.html`, `workbook-data.json`, `sw.js` i `manifest.json`. Otwórz aplikację online, upewnij się, że nagłówek pokazuje `v2.2.79`, a następnie wykonaj synchronizację. W komunikacie sprawdź liczbę „zaktualizowanych istniejących” lotów z maili. Po odświeżeniu sprawdź te same wpisy ponownie.
+WDROŻENIE: wgraj wszystkie pliki z katalogu POMIWO_logbook_v2.2.80_FINANCE_LOCKED do głównego katalogu hostingu, nadpisując index.html, workbook-data.json, sw.js i manifest.json. Nie pomijaj finance-data.enc.json. Następnie otwórz aplikację online i potwierdź, że wersja to v2.2.80.
+
+Uwaga bezpieczeństwa: to ochrona danych szyfrowaniem po stronie klienta, nie kontrola dostępu na poziomie serwera. Plik zaszyfrowany jest publicznie pobieralny, ale nie zawiera jawnych wartości. Każdy, kto zna hasło, może go odszyfrować.

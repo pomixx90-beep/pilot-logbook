@@ -2,7 +2,7 @@
   "id": "./",
   "name": "POMIWO logbook",
   "short_name": "POMIWO",
-  "description": "POMIWO logbook v2.2.79 — lepsze dopasowanie zaległych maili do istniejących lotów",
+  "description": "POMIWO logbook v2.2.80 — sekcja Finanse chroniona hasłem",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
