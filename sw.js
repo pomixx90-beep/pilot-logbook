@@ -1,4 +1,4 @@
-const CACHE='pomiwo-logbook-v2.2.81';
+const CACHE='pomiwo-logbook-v2.2.82-finance-live-calcs';
 const ASSETS=['./','./index.html','./manifest.json','./workbook-data.json','./finance-data.enc.json'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)))});
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "POMIWO logbook",
   "short_name": "POMIWO",
-  "description": "POMIWO logbook v2.2.81 — sekcja Finanse chroniona hasłem",
+  "description": "POMIWO logbook v2.2.82 — Finanse liczone na podstawie lotów aplikacji",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
