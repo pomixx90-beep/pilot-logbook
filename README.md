@@ -8,3 +8,6 @@ Zmiany w sekcji Finanse:
 - Widok miesięcy to responsywne karty zamiast szerokiej, przewijanej tabeli.
 
 Uwaga: ustawienia finansowe są przechowywane lokalnie na tym urządzeniu/przeglądarce. Ręczny SBH jest tymczasowy i znika po przeładowaniu aplikacji. Kalkulacje są szacunkowe i nie stanowią księgowego rozliczenia podatkowego.
+
+
+Finance v2.2.83: added editable monthly ryczałt percentage (default 8.5%) and VAT percentage (default 23%), with monthly and yearly PLN totals. Tax/VAT calculations follow the original Invoice sheet structure: ryczałt on gross EUR converted to PLN; VAT as percentage of gross EUR converted to PLN. Estimated payout subtracts ryczałt and ZUS, as in the workbook payout formula; VAT is displayed separately. Verify with accountant before relying on tax estimates.
